@@ -18,7 +18,6 @@ typedef enum {
 typedef struct {
 	TokenType tokenType;
 	int value;
-	//FILE* source;
 } Token;
 
 typedef struct {
