@@ -1,5 +1,10 @@
 #include "lexer.h"
 
+void lexer_error(char c, int line) {
+	fprintf(stderr, "[LEXER] Unrecognised character %c on line %d\n", c, line);
+	exit(1);
+}
+
 Lexer lexer_new(FILE* source) {
 	Lexer l = { source, 1 };
 	return l;
@@ -12,7 +17,7 @@ int is_white_space(char c) {
 int next_char(Lexer* lexer) {
 	int c = fgetc(lexer->source);
 	if ('\n' == c) {
-		lexer->line++;
+		lexer->curr_line++;
 	}
 	lexer->curr_char = c;
 	return c;
@@ -72,10 +77,9 @@ Token lexer_next_token(Lexer* lexer) {
 			t.value = parse_int(lexer);
 			break;
 		}
-
-		fprintf(stderr, "[LEXER] Unrecognised character %c on line %d\n", c, (int)lexer->line);
-		exit(1);
+		lexer_error(c, lexer->curr_line);
 	}
-
+	t.line = lexer->curr_line;
+	lexer->curr_token = t;
 	return t;
 }

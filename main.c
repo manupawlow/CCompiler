@@ -82,6 +82,8 @@ int interpretAST(ASTNode* n) {
 	}
 }
 
+int* line;
+
 int main()
 {
     FILE* infile;
@@ -100,6 +102,7 @@ int main()
 	printTree(root, "", 0);
 
 	printf("\n\nResult: %d", interpretAST(root));
+
 
 	//Token token = lexer_next_token(&lexer);
 	//while (token.tokenType != TOKEN_END) {

@@ -18,12 +18,14 @@ typedef enum {
 typedef struct {
 	TokenType tokenType;
 	int value;
+	int line;
 } Token;
 
 typedef struct {
 	FILE* source;
-	size_t line;
+	size_t curr_line;
 	int curr_char;
+	Token curr_token;
 } Lexer;
 
 Lexer lexer_new(FILE* source);

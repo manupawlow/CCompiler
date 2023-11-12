@@ -1,7 +1,8 @@
 #include "parser.h"
 
-void syntax_error(int line) {
-    fprintf(stderr, "[PARSER] syntax error on line %d", line);
+int* _line;
+void syntax_error() {
+    fprintf(stderr, "[PARSER] syntax error on line %d", *_line);
     exit(1);
 }
 
@@ -25,40 +26,67 @@ static struct ASTNode* ast_new_node(NodeType type, int value, ASTNode* left, AST
     return node;
 }
 
-NodeType tokenType_to_NodeType(TokenType token_type, int line) {
-    switch (token_type) {
+NodeType arithmetic_operation(TokenType tokenType) {
+    switch (tokenType) {
     case TOKEN_PLUS:    return (NODE_ADD);
     case TOKEN_MINUS:   return (NODE_SUBTRACT);
     case TOKEN_STAR:    return (NODE_MULTIPLY);
     case TOKEN_SLASH:   return (NODE_DIVIDE);
-    default: syntax_error(line);
+    default: syntax_error();
     }
 }
 
 static struct ASTNode* parse_leaf(Lexer* lexer) {
-    Token t = lexer_next_token(lexer);
+    //Token t = lexer_next_token(lexer);
+    Token t = lexer->curr_token;
     if (t.tokenType != TOKEN_INTLIT) {
-        syntax_error(lexer->line);
+        syntax_error();
     }
-    return ast_new_node(NODE_INTLIT, t.value, NULL, NULL);
-}
-
-static struct ASTNode* parser_expresion(Lexer* lexer) {
-    struct ASTNode* left = parse_leaf(lexer);
-
-    Token t = lexer_next_token(lexer);
-    if (t.tokenType == TOKEN_END) {
-        return left;
-    }
-    NodeType operator_type = tokenType_to_NodeType(t.tokenType, lexer->line);
-
-    ASTNode* rigth = parser_expresion(lexer);
-
-    ASTNode* node = ast_new_node(operator_type, 0, left, rigth);
-
+    ASTNode* node = ast_new_node(NODE_INTLIT, t.value, NULL, NULL);
+    lexer_next_token(lexer);
     return node;
 }
 
+//                       EOF +   -   *   /  int
+static int _op_prec[] = { 0, 10, 10, 20, 20, 0 };
+int operator_precedence(TokenType tokenType) {
+    int prec = _op_prec[tokenType];
+    if (prec == 0) {
+        syntax_error();
+    }
+    return prec;
+}
+
+static struct ASTNode* parser_expresion(Lexer* lexer, int prev_precedence) {
+    struct ASTNode *left, *right;
+
+    left = parse_leaf(lexer);
+    
+    TokenType tokenType = lexer->curr_token.tokenType;
+    if (tokenType == TOKEN_END) {
+        return left;
+    }
+    
+    while (operator_precedence(tokenType) > prev_precedence) {
+        
+        lexer_next_token(lexer);
+
+        right = parser_expresion(lexer, operator_precedence(tokenType));
+
+        left = ast_new_node(arithmetic_operation(tokenType), 0, left, right);
+
+        tokenType = lexer->curr_token.tokenType;
+
+        if (tokenType == TOKEN_END) {
+            return left;
+        }
+    }
+
+    return left;
+}
+
 struct ASTNode* parser_parse(Parser* parser) {
-    return parser_expresion(parser->lexer);
+    lexer_next_token(parser->lexer);
+    _line = &parser->lexer->curr_line;
+    return parser_expresion(parser->lexer, 0);
 }
