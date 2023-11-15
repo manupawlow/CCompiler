@@ -3,6 +3,7 @@
 #include <string.h>
 #include "lexer.h"
 #include "parser.h"
+#include "code_generator.h"
 
 void print_ast_node(ASTNode* node) {
 	char myString[20];
@@ -87,26 +88,26 @@ int* line;
 int main()
 {
     FILE* infile;
-    errno_t err = fopen_s(&infile, "input.txt", "r");
-    if (err != 0) {
-        fprintf(stderr, "Unable to open file\n");
+    if ((infile = fopen("input.txt", "r")) == NULL) {
+        fprintf(stderr, "Unable to open file: %s", strerror(errno));
         exit(1);
     }
 
     Lexer lexer = lexer_new(infile);
 	
-	Parser parser = parser_new(&lexer);
+	ASTNode* root = parse(&lexer);
 
-	ASTNode* root = parser_parse(&parser);
-	
+	FILE* outfile;
+	if ((outfile = fopen("out.asm", "w")) == NULL) {
+		fprintf(stderr, "Unable to create file: %s", strerror(errno));
+		exit(1);
+	}
+
+	generate_code(outfile, root);
+
 	printTree(root, "", 0);
-
 	printf("\n\nResult: %d", interpretAST(root));
 
-
-	//Token token = lexer_next_token(&lexer);
-	//while (token.tokenType != TOKEN_END) {
-	//	print_token(token);
-	//	token = lexer_next_token(&lexer);
-	//}
+	fclose(outfile);
+	return 0;
 }

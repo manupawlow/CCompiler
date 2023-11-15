@@ -6,11 +6,6 @@ void syntax_error() {
     exit(1);
 }
 
-Parser parser_new(Lexer* lexer) {
-    Parser p = { lexer };
-    return p;
-}
-
 static struct ASTNode* ast_new_node(NodeType type, int value, ASTNode* left, ASTNode* right)
 {
     ASTNode* node;
@@ -19,6 +14,7 @@ static struct ASTNode* ast_new_node(NodeType type, int value, ASTNode* left, AST
         fprintf(stderr, "[PARSER] Unable to create a new ASTNode\n");
         exit(1);
     }
+
     node->type = type;
     node->left = left;
     node->right = right;
@@ -85,8 +81,8 @@ static struct ASTNode* parser_expresion(Lexer* lexer, int prev_precedence) {
     return left;
 }
 
-struct ASTNode* parser_parse(Parser* parser) {
-    lexer_next_token(parser->lexer);
-    _line = &parser->lexer->curr_line;
-    return parser_expresion(parser->lexer, 0);
+struct ASTNode* parse(Lexer* lexer) {
+    lexer_next_token(lexer);
+    _line = &lexer->curr_line;
+    return parser_expresion(lexer, 0);
 }

@@ -21,11 +21,6 @@ typedef struct {
 	struct ASTNode* right;
 } ASTNode;
 
-typedef struct {
-	Lexer* lexer;
-} Parser;
-
-Parser parser_new(Lexer* lexer);
-struct ASTNode* parser_parse(Parser* parser);
+struct ASTNode* parse(Lexer* lexer);
 
 #endif // PARSER_H_

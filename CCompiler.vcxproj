@@ -127,11 +127,13 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="code_generator.c" />
     <ClCompile Include="lexer.c" />
     <ClCompile Include="main.c" />
     <ClCompile Include="parser.c" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="code_generator.h" />
     <ClInclude Include="lexer.h" />
     <ClInclude Include="parser.h" />
   </ItemGroup>
