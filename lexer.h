@@ -6,6 +6,8 @@
 #include <ctype.h>
 #include <string.h>
 
+#define MAX_TOKEN_LEN 512 
+
 typedef enum {
 	TOKEN_END,
 	TOKEN_PLUS,
@@ -13,6 +15,8 @@ typedef enum {
 	TOKEN_STAR, 
 	TOKEN_SLASH, 
 	TOKEN_INTLIT,
+	TOKEN_SEMICOLON,
+	TOKEN_PRINT,
 } TokenType;
 
 typedef struct {
@@ -23,7 +27,7 @@ typedef struct {
 
 typedef struct {
 	FILE* source;
-	size_t curr_line;
+	int curr_line;
 	int curr_char;
 	Token curr_token;
 } Lexer;

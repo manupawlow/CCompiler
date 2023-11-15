@@ -22,5 +22,6 @@ typedef struct {
 } ASTNode;
 
 struct ASTNode* parse(Lexer* lexer);
+struct ASTNode* parser_expresion(Lexer* lexer, int prev_precedence);
 
 #endif // PARSER_H_

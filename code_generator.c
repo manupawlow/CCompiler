@@ -132,11 +132,36 @@ int assembly_ast_node(ASTNode* node) {
     }
 }
 
-void generate_code(FILE* outfile, ASTNode* root) {
-	OutFile = outfile;
-    assembly_preamble();
-    int r = assembly_ast_node(root);
-    assembly_printint(r);
-    assembly_postamble();
+void match(TokenType type, Lexer* lexer) {
+    if (lexer->curr_token.tokenType != type) {
+        printf("Unexpected token on line %d\n", lexer->curr_line);
+        exit(1);
+    }
+    lexer_next_token(lexer);
 }
 
+int statements(Lexer* lexer) {
+    ASTNode* tree;
+    int reg;
+
+    while (1) {
+        match(TOKEN_PRINT, lexer);
+        tree = parser_expresion(lexer, 0);
+        reg = assembly_ast_node(tree);
+        assembly_printint(reg);
+        freeall_registers();
+        match(TOKEN_SEMICOLON, lexer);
+        if (TOKEN_END == lexer->curr_token.tokenType)
+            return;
+    }
+}
+
+void generate_code(FILE* outfile, Lexer* lexer) {
+	OutFile = outfile;
+
+    lexer_next_token(lexer);
+
+    assembly_preamble();
+    statements(lexer);
+    assembly_postamble();
+}

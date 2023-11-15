@@ -83,7 +83,29 @@ int interpretAST(ASTNode* n) {
 	}
 }
 
-int* line;
+void read_output() {
+	FILE* archivo;
+	char caracter;
+
+	// Abrir el archivo en modo lectura ("r")
+	archivo = fopen("out.asm", "r");
+
+	// Verificar si el archivo se abrió correctamente
+	if (archivo == NULL) {
+		printf("No se pudo abrir el archivo.\n");
+		return 1; // Terminar el programa con un código de error
+	}
+
+	// Leer y mostrar el contenido del archivo
+	printf("Assembly:\n");
+
+	while ((caracter = fgetc(archivo)) != EOF) {
+		printf("%c", caracter);
+	}
+
+	// Cerrar el archivo
+	fclose(archivo);
+}
 
 int main()
 {
@@ -94,8 +116,7 @@ int main()
     }
 
     Lexer lexer = lexer_new(infile);
-	
-	ASTNode* root = parse(&lexer);
+	//ASTNode* root = parse(&lexer);
 
 	FILE* outfile;
 	if ((outfile = fopen("out.asm", "w")) == NULL) {
@@ -103,11 +124,14 @@ int main()
 		exit(1);
 	}
 
-	generate_code(outfile, root);
+	generate_code(outfile, &lexer);
 
-	printTree(root, "", 0);
-	printf("\n\nResult: %d", interpretAST(root));
+	//printTree(root, "", 0);
+	//printf("\n\nResult: %d", interpretAST(root));
 
 	fclose(outfile);
+
+	read_output();
+
 	return 0;
 }

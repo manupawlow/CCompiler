@@ -53,13 +53,14 @@ int operator_precedence(TokenType tokenType) {
     return prec;
 }
 
-static struct ASTNode* parser_expresion(Lexer* lexer, int prev_precedence) {
+//binexpr
+struct ASTNode* parser_expresion(Lexer* lexer, int prev_precedence) {
     struct ASTNode *left, *right;
 
     left = parse_leaf(lexer);
     
     TokenType tokenType = lexer->curr_token.tokenType;
-    if (tokenType == TOKEN_END) {
+    if (tokenType == TOKEN_SEMICOLON) {
         return left;
     }
     
@@ -73,7 +74,7 @@ static struct ASTNode* parser_expresion(Lexer* lexer, int prev_precedence) {
 
         tokenType = lexer->curr_token.tokenType;
 
-        if (tokenType == TOKEN_END) {
+        if (tokenType == TOKEN_SEMICOLON) {
             return left;
         }
     }
