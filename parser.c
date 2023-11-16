@@ -1,4 +1,7 @@
 #include "parser.h"
+#include "code_generator.h"
+
+#define ERROR "Unknown variable %s"
 
 int* _line;
 void syntax_error() {
@@ -6,7 +9,7 @@ void syntax_error() {
     exit(1);
 }
 
-static struct ASTNode* ast_new_node(NodeType type, int value, ASTNode* left, ASTNode* right)
+struct ASTNode* ast_new_node(NodeType type, int value, ASTNode* left, ASTNode* right)
 {
     ASTNode* node;
     node = (ASTNode*)malloc(sizeof(ASTNode));
@@ -33,14 +36,29 @@ NodeType arithmetic_operation(TokenType tokenType) {
 }
 
 static struct ASTNode* parse_leaf(Lexer* lexer) {
-    //Token t = lexer_next_token(lexer);
-    Token t = lexer->curr_token;
-    if (t.tokenType != TOKEN_INTLIT) {
-        syntax_error();
+    ASTNode* n;
+    int id;
+
+    switch (lexer->curr_token.tokenType)
+    {
+    case TOKEN_INTLIT:
+        n = ast_new_node(NODE_INTLIT, lexer->curr_token.value, NULL, NULL);
+        break;
+    case TOKEN_IDENTIFIER:
+        id = findSymbol(Text);
+        if (id == -1) {
+            fprintf(stderr, ERROR, Text);
+            exit(1);
+        }
+        n = ast_new_node(NODE_IDENTIFIER, id, NULL, NULL);
+        break;
+    default:
+        fprintf(stderr, "Syntax error, token %s", Text);
+        exit(1);
+        break;
     }
-    ASTNode* node = ast_new_node(NODE_INTLIT, t.value, NULL, NULL);
     lexer_next_token(lexer);
-    return node;
+    return n;
 }
 
 //                       EOF +   -   *   /  int
@@ -55,6 +73,7 @@ int operator_precedence(TokenType tokenType) {
 
 //binexpr
 struct ASTNode* parser_expresion(Lexer* lexer, int prev_precedence) {
+    _line = &lexer->curr_line;
     struct ASTNode *left, *right;
 
     left = parse_leaf(lexer);

@@ -8,6 +8,8 @@
 
 #define MAX_TOKEN_LEN 512 
 
+char Text[MAX_TOKEN_LEN + 1];
+
 typedef enum {
 	TOKEN_END,
 	TOKEN_PLUS,
@@ -17,6 +19,9 @@ typedef enum {
 	TOKEN_INTLIT,
 	TOKEN_SEMICOLON,
 	TOKEN_PRINT,
+	TOKEN_EQUALS,
+	TOKEN_INT,
+	TOKEN_IDENTIFIER,
 } TokenType;
 
 typedef struct {

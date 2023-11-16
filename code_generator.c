@@ -69,7 +69,7 @@ void assembly_postamble()
         OutFile);
 }
 
-int assembly_load(int value) {
+int assembly_load_int(int value) {
     int r = alloc_register();
     fprintf(OutFile, "\tmov\t\t%s, %d\t\t; load %d into %s\n", reglist[r], value, value, reglist[r]);
     return r;
@@ -112,24 +112,70 @@ void assembly_printint(int r) {
     free_register(r);
 }
 
-int assembly_ast_node(ASTNode* node) {
+int assembly_load_identifier(char* symbol) {
+    int r = alloc_register();
+    fprintf(OutFile, "\tmov\t%s, [%s]\n", symbol, reglist[r]);
+    return r;
+}
+
+int assembly_store_variable(int r, char* identifier) {
+    fprintf(OutFile, "\t.comm\t%s, 8, 8%s\n", identifier, reglist[r]);
+    return r;
+}
+
+//genAST
+int assembly_ast_node(ASTNode* node, int reg) {
 	int leftRegister = -1, rightRegister = -1;
 
 	if (node->left)
-        leftRegister = assembly_ast_node(node->left);
+        leftRegister = assembly_ast_node(node->left, -1);
 	if (node->right)
-        rightRegister = assembly_ast_node(node->right);
+        rightRegister = assembly_ast_node(node->right, leftRegister);
 
     switch (node->type) {
     case NODE_ADD: return assembly_add(leftRegister, rightRegister);
     case NODE_SUBTRACT: return assembly_sub(leftRegister, rightRegister);
     case NODE_MULTIPLY: return assembly_mul(leftRegister, rightRegister);
     case NODE_DIVIDE: return assembly_div(leftRegister, rightRegister);
-    case NODE_INTLIT: return assembly_load(node->value);
+    case NODE_INTLIT: return assembly_load_int(node->value);
+    case NODE_IDENTIFIER: return assembly_load_identifier(SymTable[node->value].name);
+    case NODE_LVALUE_IDENTIFIER: return assembly_store_variable(reg, node->value);
+    case NODE_ASSIGN: return rightRegister;
     default:
         fprintf(stderr, "[CG] Unknown AST operator %d\n", node->type);
         exit(1);
     }
+}
+
+//statements
+
+int findSymbol(char* symbol) {
+    int i;
+    for (i = 0; i < SymTablePosition; i++) {
+        if (*symbol == *SymTable[i].name && !strcmp(symbol, SymTable[i].name))
+            return (i);
+    }
+    return (-1);
+}
+
+int newSymbolSlot(void) {
+    int p;
+    if ((p = SymTablePosition++) >= NSYMBOLS){
+        fprintf(stderr, "Too many global symbols");
+        exit(1);
+    }
+    return (p);
+}
+
+int addSymbol(char* name) {
+    int y;
+
+    if ((y = findSymbol(name)) != -1)
+        return (y);
+
+    y = newSymbolSlot();
+    SymTable[y].name = _strdup(name);
+    return (y);
 }
 
 void match(TokenType type, Lexer* lexer) {
@@ -140,19 +186,71 @@ void match(TokenType type, Lexer* lexer) {
     lexer_next_token(lexer);
 }
 
-int statements(Lexer* lexer) {
+void print_statement(Lexer* lexer) {
     ASTNode* tree;
     int reg;
+    match(TOKEN_PRINT, lexer);
+    tree = parser_expresion(lexer, 0);
+    reg = assembly_ast_node(tree, -1);
+    assembly_printint(reg);
+    freeall_registers();
+    match(TOKEN_SEMICOLON, lexer);
+}
 
+void int_statement(Lexer* lexer) {
+    match(TOKEN_INT, lexer);
+    match(TOKEN_IDENTIFIER, lexer);
+    addSymbol(Text);
+    //genglobsym(Text);
+    match(TOKEN_SEMICOLON, lexer);
+}
+
+void assignment_statement(Lexer* lexer) {
+    
+    match(TOKEN_IDENTIFIER, lexer);
+
+    ASTNode *left, *right, *tree;
+    int id;
+
+    if ((id = findSymbol(Text)) == -1) {
+        fprintf(stderr, "Undeclared variable %s", Text);
+        exit(1);
+    }
+
+    right = ast_new_node(NODE_INTLIT, id, NULL, NULL);
+
+    match(TOKEN_EQUALS, lexer);
+
+    left = parser_expresion(lexer, 0);
+
+    tree = ast_new_node(NODE_ASSIGN, 0, left, right);
+
+    assembly_ast_node(tree, -1);
+    freeall_registers();
+
+    match(TOKEN_SEMICOLON, lexer);
+}
+
+int statements(Lexer* lexer) {
     while (1) {
-        match(TOKEN_PRINT, lexer);
-        tree = parser_expresion(lexer, 0);
-        reg = assembly_ast_node(tree);
-        assembly_printint(reg);
-        freeall_registers();
-        match(TOKEN_SEMICOLON, lexer);
-        if (TOKEN_END == lexer->curr_token.tokenType)
+
+        switch (lexer->curr_token.tokenType)
+        {
+        case TOKEN_PRINT:
+            print_statement(lexer);
+            break;
+        case TOKEN_INT:
+            int_statement(lexer);
+            break;
+        case TOKEN_IDENTIFIER:
+            assignment_statement(lexer);
+            break;
+        case TOKEN_END:
             return;
+        default:
+            printf("Syntax error");
+            exit(1);
+        }
     }
 }
 

@@ -4,7 +4,10 @@ Semantic analysis
 statements: statement
      | statement statements
 
-statement: 'print' expression ';'
+statement: 
+      'print' expression ';'
+    | 'int' identifier ';'
+    | identifier '=' expression ';'
 
 expression: additive_expression
  
@@ -18,4 +21,5 @@ multiplicative_expression:
     | number '*' multiplicative_expression
     | number '/' multiplicative_expression
 
-number:  T_INTLIT
+number:  TOKEN_INT
+identifier:  TOKEN_IDENTIFIER

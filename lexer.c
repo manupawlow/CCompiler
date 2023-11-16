@@ -49,10 +49,8 @@ int scan_int(Lexer* lexer) {
 	return int_value;
 }
 
-char* scan_token(Lexer* lexer) {
+char* scan_token(Lexer* lexer, char* buffer) {
 	int k, int_value = 0, c = lexer->curr_char;
-
-	char buffer[MAX_TOKEN_LEN];
 
 	int i = 0;
 	while (isalpha(c) || isdigit(c) || '_' == c) {
@@ -68,11 +66,11 @@ char* scan_token(Lexer* lexer) {
 
 	ungetc(c, lexer->source);
 	buffer[i] = '\0';
-	return buffer;
 }
 
 int keyword_token(char* s) {
 	if (strcmp(s, "print") == 0) return TOKEN_PRINT;
+	if (strcmp(s, "int") == 0) return TOKEN_INT;
 	return 0;
 }
 
@@ -83,9 +81,6 @@ Token lexer_next_token(Lexer* lexer) {
 
 	switch (c)
 	{
-	case ';':
-		t.tokenType = TOKEN_SEMICOLON;
-		break;
 	case EOF:
 		t.tokenType = TOKEN_END;
 		break;
@@ -101,6 +96,12 @@ Token lexer_next_token(Lexer* lexer) {
 	case '/':
 		t.tokenType = TOKEN_SLASH;
 		break;
+	case ';':
+		t.tokenType = TOKEN_SEMICOLON;
+		break;
+	case '=':
+		t.tokenType = TOKEN_EQUALS;
+		break;
 	default:
 		if (isdigit(c)) {
 			t.tokenType = TOKEN_INTLIT;
@@ -108,12 +109,11 @@ Token lexer_next_token(Lexer* lexer) {
 			break;
 		}
 		else if (isalpha(c) || '_' == c) {
-			char* token_name = scan_token(lexer);
-			t.tokenType = keyword_token(token_name);
+			scan_token(lexer, &Text);
+			t.tokenType = keyword_token(Text);
 
 			if (!t.tokenType) {
-				printf("Unrecognised token %s on line %d\n", token_name, lexer->curr_line);
-				exit(1);
+				t.tokenType = TOKEN_IDENTIFIER;
 			}
 
 			break;
