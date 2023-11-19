@@ -4,17 +4,24 @@
 #include <string.h>
 #include "lexer.h"
 #include "parser.h"
+#include "symbols.h"
 
-#define NSYMBOLS 1024 
+static FILE* OutFile;
+void setOutputFile(FILE* output);
 
-struct Symbol {
-	char* name;                   // Name of a symbol
-};
-
-struct Symbol SymTable[NSYMBOLS];
-static int SymTablePosition = 0;
-
-void generate_code(FILE* outfile, Lexer* lexer);
-int findSymbol(char* symbol);
+void freeall_registers();
+void assembly_preamble();
+void assembly_postamble();
+int assembly_ast_node(ASTNode* node, int reg, NodeType parent_type);
+int assembly_load_int(int value);
+int assembly_load_global(char* identifier);
+int assembly_add(int r1, int r2);
+int assembly_sub(int r1, int r2);
+int assembly_mul(int r1, int r2);
+int assembly_div(int r1, int r2);
+void assembly_printint(int r);
+int assembly_store_global(int r, char* identifier);
+void assembly_generate_global_symbol(char* symbol);
+int assembly_if(ASTNode* n);
 
 #endif // CODE_GENERATOR_H_

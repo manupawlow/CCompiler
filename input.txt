@@ -1,5 +1,6 @@
-int fred;
-int jim;
-fred= 5;
-jim= 12;
-print fred + jim;
+{
+  if (10 < 20) {
+    print 10;
+  }
+    print 20;
+}

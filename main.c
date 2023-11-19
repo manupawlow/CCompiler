@@ -4,58 +4,34 @@
 #include "lexer.h"
 #include "parser.h"
 #include "code_generator.h"
+#include "statements.h"
 
-void print_ast_node(ASTNode* node) {
-	char myString[20];
-	switch (node->type)
-	{
-	case NODE_ADD:
-		printf("+");
-		break;
-	case NODE_SUBTRACT:
-		printf("-");
-		break;
-	case NODE_MULTIPLY :
-		printf("*");
-		break;
-	case NODE_DIVIDE:
-		printf("/");
-		break;
-	case NODE_INTLIT:
-		printf("%d", node->value);
-		break;
-	default:
-		printf("?");
-		break;
-	}
-}
-
-void printTree(const ASTNode* node, const char* prefix, int isRight)
-{
-	if (node != NULL)
-	{
-		char newPrefix[100];
-		char* val;
-
-		if (isRight) {
-			printf("%s|--", prefix);
-			print_ast_node(node);
-			printf("\n");
-			strcpy(newPrefix, prefix);
-			strcat(newPrefix, "|   ");
-		}
-		else {
-			printf("%s --", prefix);
-			print_ast_node(node);
-			printf("\n");
-			strcpy(newPrefix, prefix);
-			strcat(newPrefix, "    ");
-		}
-
-		printTree(node->right, newPrefix, 1);
-		printTree(node->left, newPrefix, 0);
-	}
-}
+//void printTree(const ASTNode* node, const char* prefix, int isRight)
+//{
+//	if (node != NULL)
+//	{
+//		char newPrefix[100];
+//		char* val;
+//
+//		if (isRight) {
+//			printf("%s|--", prefix);
+//			print_ast_node(node);
+//			printf("\n");
+//			strcpy(newPrefix, prefix);
+//			strcat(newPrefix, "|   ");
+//		}
+//		else {
+//			printf("%s --", prefix);
+//			print_ast_node(node);
+//			printf("\n");
+//			strcpy(newPrefix, prefix);
+//			strcat(newPrefix, "    ");
+//		}
+//
+//		printTree(node->right, newPrefix, 1);
+//		printTree(node->left, newPrefix, 0);
+//	}
+//}
 
 int interpretAST(ASTNode* n) {
 	int leftval = 0, rightval = 0;
@@ -95,10 +71,9 @@ void read_output() {
 		printf("No se pudo abrir el archivo.\n");
 		return 1; // Terminar el programa con un código de error
 	}
+	printf("\n");
 
 	// Leer y mostrar el contenido del archivo
-	printf("Assembly:\n");
-
 	while ((caracter = fgetc(archivo)) != EOF) {
 		printf("%c", caracter);
 	}
@@ -115,22 +90,26 @@ int main()
         exit(1);
     }
 
-    Lexer lexer = lexer_new(infile);
-	//ASTNode* root = parse(&lexer);
-
 	FILE* outfile;
 	if ((outfile = fopen("out.asm", "w")) == NULL) {
 		fprintf(stderr, "Unable to create file: %s", strerror(errno));
 		exit(1);
 	}
 
-	generate_code(outfile, &lexer);
+	setOutputFile(outfile);
 
-	//printTree(root, "", 0);
-	//printf("\n\nResult: %d", interpretAST(root));
+	//Start compilation
+	Lexer lexer = lexer_new(infile);
+	lexer_next_token(&lexer);
 
+	assembly_preamble();
+	ASTNode* tree = compound_statement(&lexer);
+	assembly_ast_node(tree, -1, 0);
+	assembly_postamble();
+	
+	//End compilation
+	
 	fclose(outfile);
-
 	read_output();
 
 	return 0;

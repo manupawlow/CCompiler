@@ -1,13 +1,26 @@
 
 Semantic analysis
 
-statements: statement
-     | statement statements
+compound_statement: 
+      '{' '}'
+    | '{' statement '}'
+    | '{' statement statements '}'
 
-statement: 
-      'print' expression ';'
-    | 'int' identifier ';'
-    | identifier '=' expression ';'
+ statement: 
+      print_statement
+    | declaration
+    | assignment_statement
+    | if_statement
+
+print_statement: 'print' expression ';'
+declaration: 'int' identifier ';'
+assignment_statement: identifier '=' expression ';'
+
+ if_statement: 
+      if_head
+    | if_head 'else' compound_statement
+
+if_head: 'if' '(' true_false_expression ')' compound_statement
 
 expression: additive_expression
  

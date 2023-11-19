@@ -69,20 +69,24 @@ char* scan_token(Lexer* lexer, char* buffer) {
 }
 
 int keyword_token(char* s) {
-	if (strcmp(s, "print") == 0) return TOKEN_PRINT;
+	if (strcmp(s, "print") == 0) 
+		return TOKEN_PRINT;
 	if (strcmp(s, "int") == 0) return TOKEN_INT;
+	if (strcmp(s, "if") == 0) return TOKEN_IF;
+	if (strcmp(s, "else") == 0) return TOKEN_ELSE;
 	return 0;
 }
 
 Token lexer_next_token(Lexer* lexer) {
 	int c = next_non_space_char(lexer);
+	printf("%c:", c);
 
 	Token t = {0};
 
 	switch (c)
 	{
 	case EOF:
-		t.tokenType = TOKEN_END;
+		t.tokenType = TOKEN_EOF;
 		break;
 	case '+':
 		t.tokenType = TOKEN_PLUS;
@@ -99,8 +103,53 @@ Token lexer_next_token(Lexer* lexer) {
 	case ';':
 		t.tokenType = TOKEN_SEMICOLON;
 		break;
+	case '(':
+		t.tokenType = TOKEN_LPAREN;
+		break;
+	case ')':
+		t.tokenType = TOKEN_RPAREN;
+		break;
+	case '{':
+		t.tokenType = TOKEN_LBRACE;
+		break;
+	case '}':
+		t.tokenType = TOKEN_RBRACE;
+		break;
 	case '=':
-		t.tokenType = TOKEN_EQUALS;
+		if ((c = next_char(lexer)) == '=') {
+			t.tokenType = TOKEN_EQUALS;
+		}
+		else {
+			ungetc(c, lexer->source);
+			t.tokenType = TOKEN_ASSING;
+		}
+		break;
+	case '!':
+		if ((c = next_char(lexer)) == '=') {
+			t.tokenType = TOKEN_NOTEQUALS;
+		}
+		else {
+			fprintf(stderr, "[LEXER] Unrecognised character on line %d\n", lexer->curr_line);
+			exit(1);
+		}
+		break;
+	case '<':
+		if ((c = next_char(lexer)) == '=') {
+			t.tokenType = TOKEN_LESSOREQUALS;
+		}
+		else {
+			ungetc(c, lexer->source);
+			t.tokenType = TOKEN_LESS;
+		}
+		break;
+	case '>':
+		if ((c = next_char(lexer)) == '=') {
+			t.tokenType = TOKEN_GREATEROREQUALS;
+		}
+		else {
+			ungetc(c, lexer->source);
+			t.tokenType = TOKEN_GREATER;
+		}
 		break;
 	default:
 		if (isdigit(c)) {
@@ -115,12 +164,14 @@ Token lexer_next_token(Lexer* lexer) {
 			if (!t.tokenType) {
 				t.tokenType = TOKEN_IDENTIFIER;
 			}
-
 			break;
 		}
 		lexer_error(c, lexer->curr_line);
 	}
 	t.line = lexer->curr_line;
 	lexer->curr_token = t;
+
+	printf(" %d %d\n", t.tokenType, t.value);
+
 	return t;
 }
