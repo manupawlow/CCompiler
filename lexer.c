@@ -74,6 +74,8 @@ int keyword_token(char* s) {
 	if (strcmp(s, "int") == 0) return TOKEN_INT;
 	if (strcmp(s, "if") == 0) return TOKEN_IF;
 	if (strcmp(s, "else") == 0) return TOKEN_ELSE;
+	if (strcmp(s, "while") == 0) return TOKEN_WHILE;
+	if (strcmp(s, "for") == 0) return TOKEN_FOR;
 	return 0;
 }
 

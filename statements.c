@@ -14,7 +14,6 @@ ASTNode* print_statement(Lexer* lexer) {
     match(TOKEN_PRINT, lexer);
     tree = binexpr(lexer, 0);
     tree = ast_new_unary(NODE_PRINT, tree, 0);
-    match(TOKEN_SEMICOLON, lexer);
     return tree;
 }
 
@@ -46,8 +45,6 @@ ASTNode* assignment_statement(Lexer* lexer) {
 
     tree = ast_new_node(NODE_ASSIGN, left, NULL, right, 0);
 
-    match(TOKEN_SEMICOLON, lexer);
-
     return tree;
 }
 
@@ -76,6 +73,70 @@ ASTNode* if_statement(Lexer* lexer) {
     return ast_new_node(NODE_IF, condAST, trueAST, falseAST, 0);
 }
 
+ASTNode* while_statement(Lexer* lexer) {
+    ASTNode* condAST, *bodyAST;
+
+    match(TOKEN_WHILE, lexer);
+    match(TOKEN_LPAREN, lexer);
+
+    condAST = binexpr(lexer, 0);
+
+    if (condAST->type < NODE_EQUALS || condAST->type > NODE_GREATEROREQUALS) {
+        fprintf(stderr, "[PARSER] Bad comparison operator on line %d", lexer->curr_line);
+        exit(1);
+    }
+
+    match(TOKEN_RPAREN, lexer);
+
+    bodyAST = compound_statement(lexer);
+
+    return ast_new_node(NODE_WHILE, condAST, NULL, bodyAST, 0);
+}
+
+ASTNode* for_statement(Lexer* lexer) {
+    ASTNode* condAST, * bodyAST;
+    ASTNode* preopAST, * postopAST;
+    ASTNode* tree;
+
+    match(TOKEN_FOR, lexer);
+    match(TOKEN_LPAREN, lexer);
+
+    preopAST = single_statement(lexer);
+    match(TOKEN_SEMICOLON, lexer);
+
+    condAST = binexpr(lexer, 0);
+    if (condAST->type < NODE_EQUALS || condAST->type > NODE_GREATEROREQUALS) {
+        fprintf(stderr, "[PARSER] Bad comparison operator on line %d", lexer->curr_line);
+        exit(1);
+    }
+    match(TOKEN_SEMICOLON, lexer);
+
+    postopAST = single_statement(lexer);
+    match(TOKEN_RPAREN, lexer);
+
+    bodyAST = compound_statement(lexer);
+
+    tree = ast_new_node(NODE_GLUE, bodyAST, NULL, postopAST, 0);
+    tree = ast_new_node(NODE_WHILE, condAST, NULL, tree, 0);
+
+    return ast_new_node(NODE_GLUE, preopAST, NULL, tree, 0);
+}
+
+ASTNode* single_statement(Lexer* lexer) {
+    switch (lexer->curr_token.tokenType)
+    {
+    case TOKEN_PRINT: return print_statement(lexer);
+    case TOKEN_INT: int_statement(lexer); return NULL;
+    case TOKEN_IDENTIFIER: return assignment_statement(lexer);
+    case TOKEN_IF: return if_statement(lexer);
+    case TOKEN_WHILE: return while_statement(lexer);
+    case TOKEN_FOR: return for_statement(lexer);
+    default:
+        printf("Syntax error");
+        exit(1);
+    }
+}
+
 ASTNode* compound_statement(Lexer* lexer) {
     ASTNode *left = NULL;
     ASTNode *tree;
@@ -83,35 +144,20 @@ ASTNode* compound_statement(Lexer* lexer) {
     match(TOKEN_LBRACE, lexer);
 
     while (1) {
-        switch (lexer->curr_token.tokenType)
-        {
-        case TOKEN_PRINT:
-            tree = print_statement(lexer);
-            break;
-        case TOKEN_INT:
-            int_statement(lexer);
-            tree = NULL;
-            break;
-        case TOKEN_IDENTIFIER:
-            tree = assignment_statement(lexer);
-            break;
-        case TOKEN_IF:
-            tree = if_statement(lexer);
-            break;
-        case TOKEN_RBRACE:
-            match(TOKEN_RBRACE, lexer);
-            return left;
-        default:
-            printf("Syntax error");
-            exit(1);
+
+        tree = single_statement(lexer);
+
+        if (tree != NULL && (tree->type == NODE_PRINT || tree->type == NODE_ASSIGN))
+            match(TOKEN_SEMICOLON, lexer);
+
+        if (tree != NULL) {
+            if (left == NULL) left = tree;
+            else left = ast_new_node(NODE_GLUE, left, NULL, tree, 0);
         }
 
-        if (tree) {
-            if (left == NULL) {
-                left = tree;
-            } else {
-                left = ast_new_node(NODE_GLUE, 0, left, NULL, tree);
-            }
+        if (lexer->curr_token.tokenType == TOKEN_RBRACE) {
+            match(TOKEN_RBRACE, lexer);
+            return left;
         }
     }
 }

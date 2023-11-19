@@ -149,18 +149,20 @@ void assembly_jump(int l) {
 
 int assembly_if(ASTNode* n) {
     int Lfalse, Lend;
+
     Lfalse = label_id();
+
     if (n->right)
         Lend = label_id();
+
     assembly_ast_node(n->left, Lfalse, n->type);
     freeall_registers();
 
     assembly_ast_node(n->mid, -1, n->type);
     freeall_registers();
 
-    if (n->right) {
+    if (n->right)
         assembly_jump(Lend);
-    }
 
     assembly_label(Lfalse);
 
@@ -199,11 +201,32 @@ int assembly_compare_and_jump(NodeType parent_type, int r1, int r2, int label) {
     return -1;
 }
 
+int assembly_while(ASTNode* n) {
+    int Lstart, Lend;
+    
+    Lstart = label_id();
+    Lend = label_id();
+
+    assembly_label(Lstart);
+
+    assembly_ast_node(n->left, Lend, n->type);
+    freeall_registers();
+
+    assembly_ast_node(n->right, -1, n->type);
+    freeall_registers();
+
+    assembly_jump(Lstart);
+    assembly_label(Lend);
+
+    return -1;
+}
+
 //genAST
 int assembly_ast_node(ASTNode* node, int reg, NodeType parent_type) {
 	
     switch (node->type) {
     case NODE_IF: return assembly_if(node);
+    case NODE_WHILE: return assembly_while(node);
     case NODE_GLUE: 
         assembly_ast_node(node->left, -1, node->type);
         freeall_registers();
@@ -231,7 +254,7 @@ int assembly_ast_node(ASTNode* node, int reg, NodeType parent_type) {
     case NODE_GREATER: 
     case NODE_LESSOREQUALS: 
     case NODE_GREATEROREQUALS:
-        if (parent_type == NODE_IF)
+        if (parent_type == NODE_IF || parent_type == NODE_WHILE)
             return assembly_compare_and_jump(node->type, leftRegister, rightRegister, reg);
         else
             return assembly_compare_and_set(node->type, leftRegister, rightRegister);

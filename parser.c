@@ -44,7 +44,6 @@ struct ASTNode* parse_primary_factor(Lexer* lexer) {
     {
     case TOKEN_INTLIT:
         n = ast_new_leaf(NODE_INTLIT, lexer->curr_token.value);
-        //n = ast_new_node(NODE_INTLIT, lexer->curr_token.value, NULL, NULL);
         break;
     case TOKEN_IDENTIFIER:
         id = findGlobal(Text);
@@ -53,7 +52,6 @@ struct ASTNode* parse_primary_factor(Lexer* lexer) {
             exit(1);
         }
         n = ast_new_leaf(NODE_IDENTIFIER, lexer->curr_token.value);
-        //n = ast_new_node(NODE_IDENTIFIER, id, NULL, NULL);
         break;
     default:
         fprintf(stderr, "Syntax error, token %s", Text);
