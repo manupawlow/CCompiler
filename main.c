@@ -99,14 +99,18 @@ int main()
 	setOutputFile(outfile);
 
 	//Start compilation
+	ASTNode* tree;
 	Lexer lexer = lexer_new(infile);
 	lexer_next_token(&lexer);
-
-	assembly_preamble();
-	ASTNode* tree = compound_statement(&lexer);
-	assembly_ast_node(tree, -1, 0);
-	assembly_postamble();
 	
+	assembly_preamble();
+	while (1) {
+		tree = function_declaration(&lexer);
+		assembly_ast_node(tree, -1, 0);
+		if (lexer.curr_token.tokenType == TOKEN_EOF)
+			break;
+	}
+	//assembly_postamble();
 	//End compilation
 	
 	fclose(outfile);

@@ -17,12 +17,27 @@ ASTNode* print_statement(Lexer* lexer) {
     return tree;
 }
 
-void int_statement(Lexer* lexer) {
+void variable_declaration(Lexer* lexer) {
     match(TOKEN_INT, lexer);
     match(TOKEN_IDENTIFIER, lexer);
     addGlobal(Text);
     assembly_generate_global_symbol(Text);
     match(TOKEN_SEMICOLON, lexer);
+}
+
+ASTNode* function_declaration(Lexer* lexer) {
+    ASTNode* tree;
+    int nameslot;
+    
+    match(TOKEN_VOID, lexer);
+    match(TOKEN_IDENTIFIER, lexer);
+    nameslot = addGlobal(Text);
+    match(TOKEN_LPAREN, lexer);
+    match(TOKEN_RPAREN, lexer);
+
+    tree = compound_statement(lexer);
+
+    return ast_new_unary(NODE_FUNCTION, tree, nameslot);
 }
 
 ASTNode* assignment_statement(Lexer* lexer) {
@@ -126,7 +141,7 @@ ASTNode* single_statement(Lexer* lexer) {
     switch (lexer->curr_token.tokenType)
     {
     case TOKEN_PRINT: return print_statement(lexer);
-    case TOKEN_INT: int_statement(lexer); return NULL;
+    case TOKEN_INT: variable_declaration(lexer); return NULL;
     case TOKEN_IDENTIFIER: return assignment_statement(lexer);
     case TOKEN_IF: return if_statement(lexer);
     case TOKEN_WHILE: return while_statement(lexer);

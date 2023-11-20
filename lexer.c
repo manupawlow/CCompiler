@@ -76,6 +76,7 @@ int keyword_token(char* s) {
 	if (strcmp(s, "else") == 0) return TOKEN_ELSE;
 	if (strcmp(s, "while") == 0) return TOKEN_WHILE;
 	if (strcmp(s, "for") == 0) return TOKEN_FOR;
+	if (strcmp(s, "void") == 0) return TOKEN_VOID;
 	return 0;
 }
 
@@ -87,36 +88,16 @@ Token lexer_next_token(Lexer* lexer) {
 
 	switch (c)
 	{
-	case EOF:
-		t.tokenType = TOKEN_EOF;
-		break;
-	case '+':
-		t.tokenType = TOKEN_PLUS;
-		break;
-	case '-':
-		t.tokenType = TOKEN_MINUS;
-		break;
-	case '*':
-		t.tokenType = TOKEN_STAR;
-		break;
-	case '/':
-		t.tokenType = TOKEN_SLASH;
-		break;
-	case ';':
-		t.tokenType = TOKEN_SEMICOLON;
-		break;
-	case '(':
-		t.tokenType = TOKEN_LPAREN;
-		break;
-	case ')':
-		t.tokenType = TOKEN_RPAREN;
-		break;
-	case '{':
-		t.tokenType = TOKEN_LBRACE;
-		break;
-	case '}':
-		t.tokenType = TOKEN_RBRACE;
-		break;
+	case EOF: t.tokenType = TOKEN_EOF; break;
+	case '+': t.tokenType = TOKEN_PLUS; break;
+	case '-': t.tokenType = TOKEN_MINUS; break;
+	case '*': t.tokenType = TOKEN_STAR; break;
+	case '/': t.tokenType = TOKEN_SLASH; break;
+	case ';': t.tokenType = TOKEN_SEMICOLON; break;
+	case '(': t.tokenType = TOKEN_LPAREN; break;
+	case ')': t.tokenType = TOKEN_RPAREN; break;
+	case '{': t.tokenType = TOKEN_LBRACE; break;
+	case '}': t.tokenType = TOKEN_RBRACE; break;
 	case '=':
 		if ((c = next_char(lexer)) == '=') {
 			t.tokenType = TOKEN_EQUALS;

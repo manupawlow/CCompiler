@@ -42,34 +42,62 @@ static void free_register(int reg)
 void assembly_preamble()
 {
     freeall_registers();
+    //fputs("\tglobal\tmain\n"
+    //    "\textern\tprintf\n"
+    //    "\tsection\t.text\n"
+    //    "LC0:\tdb\t\"%d\",10,0\n"
+    //    "printint:\n"
+    //    "\tpush\trbp\n"
+    //    "\tmov\trbp, rsp\n"
+    //    "\tsub\trsp, 16\n"
+    //    "\tmov\t[rbp-4], edi\n"
+    //    "\tmov\teax, [rbp-4]\n"
+    //    "\tmov\tesi, eax\n"
+    //    "\tlea	rdi, [rel LC0]\n"
+    //    "\tmov	eax, 0\n"
+    //    "\tcall	printf\n" "\tnop\n" "\tleave\n" "\tret\n" "\n"
+    //    ";;;;;;;;;;;;;;;;;;;;;;\n"
+    //    , OutFile);
+    //fputs(
+    //    "global main\n"
+    //    "\n"
+    //    "extern printf\n"
+    //    "\n"
+    //    "section .data\n"
+    //    "\t_printint_format db '%d', 0xA\n"
+    //    "\n"
+    //    "section .text\n"
+    //    "\n"
+    //    "main:\n"
+    //    ";;;;;;;;;;;;;;;;;;;;;;\n",
+    //    OutFile);
     fputs(
-        "global main\n"
-        "\n"
         "extern printf\n"
         "\n"
         "section .data\n"
         "\t_printint_format db '%d', 0xA\n"
-        "\n"
-        "section .text\n"
-        "\n"
-        "main:\n"
-        "",
+        "\n",
         OutFile);
 }
 
 void assembly_postamble()
 {
     fputs(
-        "\n"
-        "\tmov  \trax, 60\t\t; exit syscall\n"
-        "\txor  \trdi, rdi\t\t; exit code 0\n"
-        "\tsyscall\n",
-        OutFile);
+        "\tmov  \teax, 0\n"
+        "\tpop  \trbp\n" 
+        "\tret\n"
+        , OutFile);
+    //fputs(
+    //    "\n"
+    //    "\tmov  \trax, 60\t\t; exit syscall\n"
+    //    "\txor  \trdi, rdi\t\t; exit code 0\n"
+    //    "\tsyscall\n",
+    //    OutFile);
 }
 
 int assembly_load_int(int value) {
     int r = alloc_register();
-    fprintf(OutFile, "\tmov  \t%s, %d\t\t; load %d into %s\n", reglist[r], value, value, reglist[r]);
+    fprintf(OutFile, "\tmov  \t%s, %d\t\t; %s <- %d\n", reglist[r], value, reglist[r], value);
     return r;
 }
 
@@ -80,39 +108,39 @@ int assembly_load_global(char* identifier) {
 }
 
 int assembly_add(int r1, int r2) {
-    fprintf(OutFile, "\tadd  \t%s, %s\t\t; add %s, %s\n", reglist[r2], reglist[r1], reglist[r2], reglist[r1]);
+    fprintf(OutFile, "\tadd  \t%s, %s\t\t; %s + %s\n", reglist[r2], reglist[r1], reglist[r2], reglist[r1]);
     free_register(r1);
     return r2;
 }
 
 int assembly_sub(int r1, int r2) {
-    fprintf(OutFile, "\tsub  \t%s, %s\t\t; sub %s, %s\n", reglist[r1], reglist[r2], reglist[r1], reglist[r2]);
+    fprintf(OutFile, "\tsub  \t%s, %s\t\t; %s - %s\n", reglist[r1], reglist[r2], reglist[r1], reglist[r2]);
     free_register(r2);
     return r1;
 }
 
 int assembly_mul(int r1, int r2) {
-    fprintf(OutFile, "\timul  \t%s, %s\t\t; mul %s, %s\n", reglist[r2], reglist[r1], reglist[r2], reglist[r1]);
+    fprintf(OutFile, "\timul  \t%s, %s\t\t; %s * %s\n", reglist[r2], reglist[r1], reglist[r2], reglist[r1]);
     free_register(r1);
     return(r2);
 }
 
 int assembly_div(int r1, int r2) {
-    fprintf(OutFile, "\tmov  \trax, %s\t\t; div %s, %s\n", reglist[r1], reglist[r1], reglist[r2]);
+    fprintf(OutFile, "\tmov  \trax, %s\t\t; %s / %s\n", reglist[r1], reglist[r1], reglist[r2]);
     fprintf(OutFile, "\txor  \trdx, rdx\n");
     fprintf(OutFile, "\tidiv \t%s\n", reglist[r2]);
-    fprintf(OutFile, "\tmov  \t%s, rax\t\t; result in rax, rest in rdx\n", reglist[r1]);
+    fprintf(OutFile, "\tmov  \t%s, rax\n", reglist[r1]);
     free_register(r2);
     return(r1);
 }
 
 void assembly_printint(int r) {
-    fprintf(OutFile, "\tpush \trbp\t\t; printint\n");
+    fprintf(OutFile, "\n");
     fprintf(OutFile, "\tmov  \trdi, _printint_format\n");
     fprintf(OutFile, "\tmov  \trsi, %s\n", reglist[r]);
     fprintf(OutFile, "\tmov  \tal, 0\n");
     fprintf(OutFile, "\tcall \tprintf\n");
-    fprintf(OutFile, "\tpop  \trbp\n");
+    fprintf(OutFile, "\n");
     free_register(r);
 }
 
@@ -221,6 +249,23 @@ int assembly_while(ASTNode* n) {
     return -1;
 }
 
+void assembly_funcpreamble(char* name) {
+    fprintf(OutFile,
+        "\tsection\t.text\n"
+        "\tglobal\t%s\n"
+        "%s:\n" 
+        "\tpush \trbp\n"
+        "\tmov  \trbp, rsp\n", name, name);
+}
+
+void assembly_funcpostamble() {
+    fputs(
+        "\tmov  \teax, 0\n"
+        "\tpop  \trbp\n" 
+        "\tret\n"
+        , OutFile);
+}
+
 //genAST
 int assembly_ast_node(ASTNode* node, int reg, NodeType parent_type) {
 	
@@ -232,6 +277,11 @@ int assembly_ast_node(ASTNode* node, int reg, NodeType parent_type) {
         freeall_registers();
         assembly_ast_node(node->right, -1, node->type);
         freeall_registers();
+        return -1;
+    case NODE_FUNCTION:
+        assembly_funcpreamble(GlobalSymbols[node->value].name);
+        assembly_ast_node(node->left, -1, node->type);
+        assembly_funcpostamble();
         return -1;
     }
 

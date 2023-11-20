@@ -20,6 +20,7 @@ typedef enum {
 	NODE_WHILE,
 	NODE_GLUE,
 	NODE_PRINT,
+	NODE_FUNCTION,
 } NodeType;
 
 typedef struct {

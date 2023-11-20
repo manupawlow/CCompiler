@@ -9,5 +9,6 @@
 ASTNode* compound_statement(Lexer* lexer);
 ASTNode* if_statement(Lexer* lexer);
 ASTNode* single_statement(Lexer* lexer);
+ASTNode* function_declaration(Lexer* lexer);
 
 #endif // STATEMENTS_H_
