@@ -95,15 +95,19 @@ void assembly_postamble()
     //    OutFile);
 }
 
-int assembly_load_int(int value) {
+int assembly_load_int(int value, PrimitiveType type) {
     int r = alloc_register();
     fprintf(OutFile, "\tmov  \t%s, %d\t\t; %s <- %d\n", reglist[r], value, reglist[r], value);
     return r;
 }
 
-int assembly_load_global(char* identifier) {
+int assembly_load_global(int id) {
     int r = alloc_register();
-    fprintf(OutFile, "\tmov  \t%s, [%s]", reglist[r], identifier);
+    Symbol sym = GlobalSymbols[id];
+    if (sym.type == PRIM_INT)
+        fprintf(OutFile, "\tmov  \t%s, [%s]", reglist[r], sym.name);
+    else 
+        fprintf(OutFile, "\tmovzx\t%s, byte [%s]", reglist[r], sym.name);
     return r;
 }
 
@@ -144,13 +148,21 @@ void assembly_printint(int r) {
     free_register(r);
 }
 
-int assembly_store_global(int r, char* identifier) {
-    fprintf(OutFile, "\tmov  \t[%s], %s\n", identifier, reglist[r]);
+int assembly_store_global(int r, int id) {
+    Symbol sym = GlobalSymbols[id];
+    if (sym.type == PRIM_INT)
+        fprintf(OutFile, "\tmov  \t[%s], %s\n", sym.name, reglist[r]);
+    else
+        fprintf(OutFile, "\tmov  \t[%s], %s\n", sym.name, breglist[r]);
     return r;
 }
 
-void assembly_generate_global_symbol(char* symbol) {
-    fprintf(OutFile, "\tcommon\t%s 8:8\n", symbol);
+void assembly_generate_global_symbol(int id) {
+    Symbol sym = GlobalSymbols[id];
+    if (sym.type == PRIM_INT)
+        fprintf(OutFile, "\tcommon\t%s 8:8\n", sym.name);
+    else
+        fprintf(OutFile, "\tcommon\t%s 1:1\n", sym.name);
 }
 
 int assembly_compare(int r1, int r2, char* compare_operator) {
@@ -175,7 +187,7 @@ void assembly_jump(int l) {
     fprintf(OutFile, "\tjmp  \tL%d\n", l);
 }
 
-int assembly_if(ASTNode* n) {
+int assembly_if(struct ASTNode* n) {
     int Lfalse, Lend;
 
     Lfalse = label_id();
@@ -183,10 +195,10 @@ int assembly_if(ASTNode* n) {
     if (n->right)
         Lend = label_id();
 
-    assembly_ast_node(n->left, Lfalse, n->type);
+    assembly_ast_node(n->left, Lfalse, n->operation);
     freeall_registers();
 
-    assembly_ast_node(n->mid, -1, n->type);
+    assembly_ast_node(n->mid, -1, n->operation);
     freeall_registers();
 
     if (n->right)
@@ -195,7 +207,7 @@ int assembly_if(ASTNode* n) {
     assembly_label(Lfalse);
 
     if (n->right) {
-        assembly_ast_node(n->right, -1, n->type);
+        assembly_ast_node(n->right, -1, n->operation);
         freeall_registers();
         assembly_label(Lend);
     }
@@ -204,7 +216,7 @@ int assembly_if(ASTNode* n) {
 }
 
 static char* cmplist[] = { "sete", "setne", "setl", "setg", "setle", "setge" };
-int assembly_compare_and_set(NodeType parent_type, int r1, int r2) {
+int assembly_compare_and_set(OperationType parent_type, int r1, int r2) {
     if (parent_type < NODE_EQUALS || parent_type > NODE_GREATEROREQUALS) {
         fprintf(stderr, "Bad ASTop in cgcompare_and_set()");
         exit(1);
@@ -218,7 +230,7 @@ int assembly_compare_and_set(NodeType parent_type, int r1, int r2) {
 
 
 static char* invcmplist[] = { "jne", "je", "jge", "jle", "jg", "jl" };
-int assembly_compare_and_jump(NodeType parent_type, int r1, int r2, int label) {
+int assembly_compare_and_jump(OperationType parent_type, int r1, int r2, int label) {
     if (parent_type < NODE_EQUALS || parent_type > NODE_GREATEROREQUALS) {
         fprintf(stderr, "Bad ASTop in cgcompare_and_set()");
         exit(1);
@@ -229,18 +241,18 @@ int assembly_compare_and_jump(NodeType parent_type, int r1, int r2, int label) {
     return -1;
 }
 
-int assembly_while(ASTNode* n) {
+int assembly_while(struct ASTNode* n) {
     int Lstart, Lend;
-    
+
     Lstart = label_id();
     Lend = label_id();
 
     assembly_label(Lstart);
 
-    assembly_ast_node(n->left, Lend, n->type);
+    assembly_ast_node(n->left, Lend, n->operation);
     freeall_registers();
 
-    assembly_ast_node(n->right, -1, n->type);
+    assembly_ast_node(n->right, -1, n->operation);
     freeall_registers();
 
     assembly_jump(Lstart);
@@ -266,58 +278,66 @@ void assembly_funcpostamble() {
         , OutFile);
 }
 
+int assembly_widen(int r, PrimitiveType oldType, PrimitiveType newType) {
+    //Nothing to do
+    return r;
+}
+
 //genAST
-int assembly_ast_node(ASTNode* node, int reg, NodeType parent_type) {
+int assembly_ast_node(struct ASTNode* node, int reg, OperationType parent_type) {
 	
-    switch (node->type) {
+    switch (node->operation) {
     case NODE_IF: return assembly_if(node);
     case NODE_WHILE: return assembly_while(node);
-    case NODE_GLUE: 
-        assembly_ast_node(node->left, -1, node->type);
+    case NODE_GLUE:
+        assembly_ast_node(node->left, -1, node->operation);
         freeall_registers();
-        assembly_ast_node(node->right, -1, node->type);
+        assembly_ast_node(node->right, -1, node->operation);
         freeall_registers();
         return -1;
     case NODE_FUNCTION:
         assembly_funcpreamble(GlobalSymbols[node->value].name);
-        assembly_ast_node(node->left, -1, node->type);
+        assembly_ast_node(node->left, -1, node->operation);
         assembly_funcpostamble();
         return -1;
     }
 
     int leftRegister = -1, rightRegister = -1;
 
-	if (node->left)
+    if (node->left)
         leftRegister = assembly_ast_node(node->left, -1, 0);
-	if (node->right)
+    if (node->right)
         rightRegister = assembly_ast_node(node->right, leftRegister, 0);
 
-    switch (node->type) {
+    switch (node->operation) {
     case NODE_ADD: return assembly_add(leftRegister, rightRegister);
     case NODE_SUBTRACT: return assembly_sub(leftRegister, rightRegister);
     case NODE_MULTIPLY: return assembly_mul(leftRegister, rightRegister);
     case NODE_DIVIDE: return assembly_div(leftRegister, rightRegister);
-    
-    case NODE_EQUALS: 
-    case NODE_NOTEQUALS: 
-    case NODE_LESS: 
-    case NODE_GREATER: 
-    case NODE_LESSOREQUALS: 
+
+    case NODE_EQUALS:
+    case NODE_NOTEQUALS:
+    case NODE_LESS:
+    case NODE_GREATER:
+    case NODE_LESSOREQUALS:
     case NODE_GREATEROREQUALS:
         if (parent_type == NODE_IF || parent_type == NODE_WHILE)
-            return assembly_compare_and_jump(node->type, leftRegister, rightRegister, reg);
+            return assembly_compare_and_jump(node->operation, leftRegister, rightRegister, reg);
         else
-            return assembly_compare_and_set(node->type, leftRegister, rightRegister);
-    case NODE_INTLIT: return assembly_load_int(node->value);
-    case NODE_IDENTIFIER: return assembly_load_global(GlobalSymbols[node->value].name);
-    case NODE_LVALUE_IDENTIFIER: return assembly_store_global(reg, GlobalSymbols[node->value].name);
+            return assembly_compare_and_set(node->operation, leftRegister, rightRegister);
+    
+    case NODE_INTLIT: return assembly_load_int(node->value, node->type);
+    case NODE_IDENTIFIER: return assembly_load_global(node->value);
+    case NODE_LVALUEIDENT: return assembly_store_global(reg, node->value);
     case NODE_ASSIGN: return rightRegister;
     case NODE_PRINT:
         assembly_printint(leftRegister);
         freeall_registers();
         return -1;
+    case NODE_WIDEN:
+        return assembly_widen(leftRegister, node->left->type, node->type);
     default:
-        fprintf(stderr, "[CG] Unknown AST operator %d\n", node->type);
+        fprintf(stderr, "[CG] Unknown AST operator %d\n", node->operation);
         exit(1);
     }
 }

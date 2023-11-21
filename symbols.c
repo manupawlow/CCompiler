@@ -17,7 +17,7 @@ int nextGlobalSlot() {
     return p;
 }
 
-int addGlobal(char* name) {
+int addGlobal(char* name, PrimitiveType type, StructuralType stype) {
     int y;
 
     if ((y = findGlobal(name)) != -1)
@@ -25,5 +25,7 @@ int addGlobal(char* name) {
 
     y = nextGlobalSlot();
     GlobalSymbols[y].name = _strdup(name);
+    GlobalSymbols[y].type = type;
+    GlobalSymbols[y].stype = stype;
     return y;
 }

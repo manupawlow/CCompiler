@@ -133,13 +133,16 @@
     <ClCompile Include="parser.c" />
     <ClCompile Include="statements.c" />
     <ClCompile Include="symbols.c" />
+    <ClCompile Include="types.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="code_generator.h" />
+    <ClInclude Include="definitions.h" />
     <ClInclude Include="lexer.h" />
     <ClInclude Include="parser.h" />
     <ClInclude Include="statements.h" />
     <ClInclude Include="symbols.h" />
+    <ClInclude Include="types.h" />
   </ItemGroup>
   <ItemGroup>
     <Text Include="grammar.txt" />

@@ -33,7 +33,7 @@
 //	}
 //}
 
-int interpretAST(ASTNode* n) {
+int interpretAST(struct ASTNode* n) {
 	int leftval = 0, rightval = 0;
 
 	// Get the left and right sub-tree values
@@ -42,7 +42,7 @@ int interpretAST(ASTNode* n) {
 	if (n->right)
 		rightval = interpretAST(n->right);
 
-	switch (n->type) {
+	switch (n->operation) {
 	case NODE_ADD:
 		return (leftval + rightval);
 	case NODE_SUBTRACT:
@@ -54,7 +54,7 @@ int interpretAST(ASTNode* n) {
 	case NODE_INTLIT:
 		return (n->value);
 	default:
-		fprintf(stderr, "Unknown AST operator %d\n", n->type);
+		fprintf(stderr, "Unknown AST operator %d\n", n->operation);
 		exit(1);
 	}
 }
@@ -69,7 +69,7 @@ void read_output() {
 	// Verificar si el archivo se abrió correctamente
 	if (archivo == NULL) {
 		printf("No se pudo abrir el archivo.\n");
-		return 1; // Terminar el programa con un código de error
+		exit(1);
 	}
 	printf("\n");
 
@@ -99,7 +99,7 @@ int main()
 	setOutputFile(outfile);
 
 	//Start compilation
-	ASTNode* tree;
+	struct ASTNode* tree;
 	Lexer lexer = lexer_new(infile);
 	lexer_next_token(&lexer);
 	

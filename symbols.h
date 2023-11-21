@@ -3,17 +3,10 @@
 
 #include <stdio.h>
 #include <string.h>
-
-#define NSYMBOLS 1024 
-
-struct Symbol {
-	char* name;
-};
-
-struct Symbol GlobalSymbols[NSYMBOLS];
+#include "definitions.h"
 
 int findGlobal(char* s);
 int nextGlobalSlot();
-int addGlobal(char* name);
+int addGlobal(char* name, PrimitiveType type, StructuralType stype);
 
 #endif // SYMBOLS_H_

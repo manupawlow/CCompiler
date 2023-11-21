@@ -9,15 +9,16 @@ void syntax_error() {
     exit(1);
 }
 
-struct ASTNode* ast_new_node(NodeType type, ASTNode* left, ASTNode* mid, ASTNode* right, int value)
+struct ASTNode* ast_new_node(OperationType operation, PrimitiveType type, struct ASTNode* left, struct ASTNode* mid, struct ASTNode* right, int value)
 {
-    ASTNode* node;
-    node = (ASTNode*)malloc(sizeof(ASTNode));
+    struct ASTNode* node;
+    node = (struct ASTNode*)malloc(sizeof(struct ASTNode));
     if (node == NULL) {
         fprintf(stderr, "[PARSER] Unable to create a new ASTNode\n");
         exit(1);
     }
 
+    node->operation = operation;
     node->type = type;
     node->left = left;
     node->mid = mid;
@@ -26,10 +27,10 @@ struct ASTNode* ast_new_node(NodeType type, ASTNode* left, ASTNode* mid, ASTNode
     return node;
 }
 
-struct ASTNode* ast_new_leaf(NodeType type, int value) { return ast_new_node(type, NULL, NULL, NULL, value); }
-struct ASTNode* ast_new_unary(NodeType type, ASTNode* left, int value) { return ast_new_node(type, left, NULL, NULL, value); }
+struct ASTNode* ast_new_leaf(OperationType operation, PrimitiveType type, int value) { return ast_new_node(operation, type, NULL, NULL, NULL, value); }
+struct ASTNode* ast_new_unary(OperationType operation, PrimitiveType type, struct ASTNode* left, int value) { return ast_new_node(operation, type, left, NULL, NULL, value); }
 
-NodeType arithmetic_operation(TokenType tokenType) {
+OperationType arithmetic_operation(TokenType tokenType) {
     if (tokenType <= TOKEN_EOF || tokenType >= TOKEN_INTLIT) {
         syntax_error();
     }
@@ -37,13 +38,17 @@ NodeType arithmetic_operation(TokenType tokenType) {
 }
 
 struct ASTNode* parse_primary_factor(Lexer* lexer) {
-    ASTNode* n;
+    struct ASTNode* n;
     int id;
 
-    switch (lexer->curr_token.tokenType)
+    Token t = lexer->curr_token;
+    switch (t.tokenType)
     {
     case TOKEN_INTLIT:
-        n = ast_new_leaf(NODE_INTLIT, lexer->curr_token.value);
+        if (t.value >= 0 && t.value < 256)
+            n = ast_new_leaf(NODE_INTLIT, PRIM_CHAR, lexer->curr_token.value);
+        else 
+            n = ast_new_leaf(NODE_INTLIT, PRIM_INT, lexer->curr_token.value);
         break;
     case TOKEN_IDENTIFIER:
         id = findGlobal(Text);
@@ -51,7 +56,7 @@ struct ASTNode* parse_primary_factor(Lexer* lexer) {
             fprintf(stderr, ERROR, Text);
             exit(1);
         }
-        n = ast_new_leaf(NODE_IDENTIFIER, lexer->curr_token.value);
+        n = ast_new_leaf(NODE_IDENTIFIER, GlobalSymbols[id].type, id);
         break;
     default:
         fprintf(stderr, "Syntax error, token %s", Text);
@@ -95,7 +100,7 @@ struct ASTNode* binexpr(Lexer* lexer, int prev_precedence) {
 
         right = binexpr(lexer, operator_precedence(tokenType));
 
-        left = ast_new_node(arithmetic_operation(tokenType), left, NULL, right, 0);
+        left = ast_new_node(arithmetic_operation(tokenType), left->type, left, NULL, right, 0);
 
         tokenType = lexer->curr_token.tokenType;
 
