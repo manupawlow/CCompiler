@@ -1,7 +1,7 @@
 extern printf
 
 section .data
-	_printint_format db '%d', 0xA
+	_format db '%d', 0xA
 
 section .bss
 	i: resb 4
@@ -16,22 +16,22 @@ main:
 	mov  	[i], r8		; i = r8
 	mov  	r8, 12		; r8 = 12
 	mov  	[j], r8		; j = r8
-	mov  	r8, [i]
-	mov  	r9, [j]
-	cmp	r8, r9
-	jge	L1
-	mov  	r8, [i]
+	mov  	r8, [i]		; r8 = i
+	mov  	r9, [j]		; r9 = j
+	cmp	r8, r9		; if (r8 >= r9)
+	jge	L1		;   goto L1
+	mov  	r8, [i]		; r8 = i
 
-	mov  	rdi, _printint_format
+	mov  	rdi, _format	; printf r8
 	mov  	rsi, r8
 	mov  	al, 0
 	call 	printf
 
-	jmp  	L2
+	jmp  	L2		; goto L2
 L1:
-	mov  	r8, [j]
+	mov  	r8, [j]		; r8 = j
 
-	mov  	rdi, _printint_format
+	mov  	rdi, _format	; printf r8
 	mov  	rsi, r8
 	mov  	al, 0
 	call 	printf

@@ -46,7 +46,7 @@ void assembly_preamble()
         "extern printf\n"
         "\n"
         "section .data\n"
-        "\t_printint_format db '%d', 0xA\n"
+        "\t_format db '%d', 0xA\n"
         "\n",
         OutFile);
 }
@@ -58,12 +58,6 @@ void assembly_postamble()
         "\tpop  \trbp\n" 
         "\tret\n"
         , OutFile);
-    //fputs(
-    //    "\n"
-    //    "\tmov  \trax, 60\t\t; exit syscall\n"
-    //    "\txor  \trdi, rdi\t\t; exit code 0\n"
-    //    "\tsyscall\n",
-    //    OutFile);
 }
 
 int assembly_load_int(int value, PrimitiveType type) {
@@ -76,32 +70,32 @@ int assembly_load_global(int id) {
     int r = alloc_register();
     Symbol sym = GlobalSymbols[id];
     if (sym.type == PRIM_INT)
-        fprintf(OutFile, "\tmov  \t%s, [%s]\n", reglist[r], sym.name);
+        fprintf(OutFile, "\tmov  \t%s, [%s]\t\t; %s = %s\n", reglist[r], sym.name, reglist[r], sym.name);
     else 
-        fprintf(OutFile, "\tmovzx\t%s, byte [%s]\n", reglist[r], sym.name);
+        fprintf(OutFile, "\tmovzx\t%s, byte [%s]\t\t; %s = %s\n", reglist[r], sym.name, reglist[r], sym.name);
     return r;
 }
 
 int assembly_add(int r1, int r2) {
-    fprintf(OutFile, "\tadd  \t%s, %s\t\t; %s + %s\n", reglist[r2], reglist[r1], reglist[r2], reglist[r1]);
+    fprintf(OutFile, "\tadd  \t%s, %s\t\t; %s = %s + %s\n", reglist[r2], reglist[r1], reglist[r2], reglist[r2], reglist[r1]);
     free_register(r1);
     return r2;
 }
 
 int assembly_sub(int r1, int r2) {
-    fprintf(OutFile, "\tsub  \t%s, %s\t\t; %s - %s\n", reglist[r1], reglist[r2], reglist[r1], reglist[r2]);
+    fprintf(OutFile, "\tsub  \t%s, %s\t\t; %s = %s - %s\n", reglist[r1], reglist[r2], reglist[r1], reglist[r1], reglist[r2]);
     free_register(r2);
     return r1;
 }
 
 int assembly_mul(int r1, int r2) {
-    fprintf(OutFile, "\timul  \t%s, %s\t\t; %s * %s\n", reglist[r2], reglist[r1], reglist[r2], reglist[r1]);
+    fprintf(OutFile, "\timul  \t%s, %s\t\t; %s = %s * %s\n", reglist[r2], reglist[r1], reglist[r2], reglist[r2], reglist[r1]);
     free_register(r1);
     return(r2);
 }
 
 int assembly_div(int r1, int r2) {
-    fprintf(OutFile, "\tmov  \trax, %s\t\t; %s / %s\n", reglist[r1], reglist[r1], reglist[r2]);
+    fprintf(OutFile, "\tmov  \trax, %s\t\t; %s = %s / %s\n", reglist[r1], reglist[r1], reglist[r1], reglist[r2]);
     fprintf(OutFile, "\txor  \trdx, rdx\n");
     fprintf(OutFile, "\tidiv \t%s\n", reglist[r2]);
     fprintf(OutFile, "\tmov  \t%s, rax\n", reglist[r1]);
@@ -111,7 +105,7 @@ int assembly_div(int r1, int r2) {
 
 void assembly_printint(int r) {
     fprintf(OutFile, "\n");
-    fprintf(OutFile, "\tmov  \trdi, _printint_format\n");
+    fprintf(OutFile, "\tmov  \trdi, _format\t; printf %s\n", reglist[r]);
     fprintf(OutFile, "\tmov  \trsi, %s\n", reglist[r]);
     fprintf(OutFile, "\tmov  \tal, 0\n");
     fprintf(OutFile, "\tcall \tprintf\n");
@@ -124,7 +118,7 @@ int assembly_store_global(int r, int id) {
     if (sym.type == PRIM_INT)
         fprintf(OutFile, "\tmov  \t[%s], %s\t\t; %s = %s\n", sym.name, reglist[r], sym.name, reglist[r]);
     else
-        fprintf(OutFile, "\tmov  \t[%s], %s\n", sym.name, breglist[r]);
+        fprintf(OutFile, "\tmov  \t[%s], %s\t\t; %s = %s\n", sym.name, breglist[r], sym.name, breglist[r]);
     return r;
 }
 
@@ -135,26 +129,26 @@ void assembly_generate_global_symbol(int id) {
     fprintf(OutFile, "\t%s: resb %d\n", sym.name, bytes);
 }
 
-int assembly_compare(int r1, int r2, char* compare_operator) {
-    fprintf(OutFile, "\tcmp  \t%s, %s\n", reglist[r1], reglist[r2]);
-    fprintf(OutFile, "\t%s \t%s\n", compare_operator, breglist[r2]);
-    fprintf(OutFile, "\tand  \t%s, 255\n", reglist[r2]);
-    free_register(r1);
-    return r2;
-}
-int assembly_equals(int r1, int r2) { return assembly_compare(r1, r2, "sete"); }
-int assembly_notequals(int r1, int r2) { return assembly_compare(r1, r2, "setne"); }
-int assembly_lessthan(int r1, int r2) { return assembly_compare(r1, r2, "setl"); }
-int assembly_greaterthan(int r1, int r2) { return assembly_compare(r1, r2, "setg"); }
-int assembly_lessorequal(int r1, int r2) { return assembly_compare(r1, r2, "setle"); }
-int assembly_greaterorequal(int r1, int r2) { return assembly_compare(r1, r2, "setge"); }
+//int assembly_compare(int r1, int r2, char* compare_operator, char* symbol) {
+//    fprintf(OutFile, "\tcmp  \t%s, %s\t\t; %s %s %s\n", reglist[r1], reglist[r2], reglist[r1], symbol, reglist[r2]);
+//    fprintf(OutFile, "\t%s \t%s\n", compare_operator, breglist[r2]);
+//    fprintf(OutFile, "\tand  \t%s, 255\n", reglist[r2]);
+//    free_register(r1);
+//    return r2;
+//}
+//int assembly_equals(int r1, int r2) { return assembly_compare(r1, r2, "sete", "=="); }
+//int assembly_notequals(int r1, int r2) { return assembly_compare(r1, r2, "setne", "!="); }
+//int assembly_lessthan(int r1, int r2) { return assembly_compare(r1, r2, "setl", "<"); }
+//int assembly_greaterthan(int r1, int r2) { return assembly_compare(r1, r2, "setg", ">"); }
+//int assembly_lessorequal(int r1, int r2) { return assembly_compare(r1, r2, "setle", "<="); }
+//int assembly_greaterorequal(int r1, int r2) { return assembly_compare(r1, r2, "setge", ">="); }
 
 void assembly_label(int l) {
     fprintf(OutFile, "L%d:\n", l);
 }
 
 void assembly_jump(int l) {
-    fprintf(OutFile, "\tjmp  \tL%d\n", l);
+    fprintf(OutFile, "\tjmp  \tL%d\t\t; goto L%d\n", l, l);
 }
 
 int assembly_if(struct ASTNode* n) {
@@ -185,28 +179,31 @@ int assembly_if(struct ASTNode* n) {
     return -1;
 }
 
+static char* cmpsymbols[] = { "==", "!=", "<", ">", "<=", ">=" };
 static char* cmplist[] = { "sete", "setne", "setl", "setg", "setle", "setge" };
 int assembly_compare_and_set(OperationType parent_type, int r1, int r2) {
     if (parent_type < NODE_EQUALS || parent_type > NODE_GREATEROREQUALS) {
         fprintf(stderr, "Bad ASTop in cgcompare_and_set()");
         exit(1);
     }
-    fprintf(OutFile, "\tcmp\t%s, %s\n", reglist[r1], reglist[r2]);
-    fprintf(OutFile, "\t%s\t%s\n", cmplist[parent_type - NODE_EQUALS], reglist[r2]);
+    int index = parent_type - NODE_EQUALS;
+    fprintf(OutFile, "\tcmp\t%s, %s\t\t; %s %s %s\n", reglist[r1], reglist[r2], reglist[r1], cmpsymbols[index], reglist[r2]);
+    fprintf(OutFile, "\t%s\t%s\n", cmplist[index], reglist[r2]);
     fprintf(OutFile, "\tmovzb\t%s, %s\n", reglist[r2], breglist[r2]);
     free_register(r1);
     return r2;
 }
 
-
+static char* invcmpsymbols[] = { "!=", "==", ">=", "<=", ">", "<" };
 static char* invcmplist[] = { "jne", "je", "jge", "jle", "jg", "jl" };
 int assembly_compare_and_jump(OperationType parent_type, int r1, int r2, int label) {
     if (parent_type < NODE_EQUALS || parent_type > NODE_GREATEROREQUALS) {
         fprintf(stderr, "Bad ASTop in cgcompare_and_set()");
         exit(1);
     }
-    fprintf(OutFile, "\tcmp\t%s, %s\n", reglist[r1], reglist[r2]);
-    fprintf(OutFile, "\t%s\tL%d\n", invcmplist[parent_type - NODE_EQUALS], label);
+    int index = parent_type - NODE_EQUALS;
+    fprintf(OutFile, "\tcmp\t%s, %s\t\t; if %s %s %s\n", reglist[r1], reglist[r2], reglist[r1], invcmpsymbols[index], reglist[r2]);
+    fprintf(OutFile, "\t%s\tL%d\t\t; goto L%d\n", invcmplist[index], label, label);
     freeall_registers();
     return -1;
 }
@@ -305,7 +302,7 @@ int assembly_ast_node(struct ASTNode* node, int reg, OperationType parent_type) 
         freeall_registers();
         return -1;
     case NODE_WIDEN:
-        return assembly_widen(leftRegister, node->left->type, node->type);
+        return node->left != NULL ? assembly_widen(leftRegister, node->left->type, node->type) : NULL;
     default:
         fprintf(stderr, "[CG] Unknown AST operator %d\n", node->operation);
         exit(1);
