@@ -42,35 +42,6 @@ static void free_register(int reg)
 void assembly_preamble()
 {
     freeall_registers();
-    //fputs("\tglobal\tmain\n"
-    //    "\textern\tprintf\n"
-    //    "\tsection\t.text\n"
-    //    "LC0:\tdb\t\"%d\",10,0\n"
-    //    "printint:\n"
-    //    "\tpush\trbp\n"
-    //    "\tmov\trbp, rsp\n"
-    //    "\tsub\trsp, 16\n"
-    //    "\tmov\t[rbp-4], edi\n"
-    //    "\tmov\teax, [rbp-4]\n"
-    //    "\tmov\tesi, eax\n"
-    //    "\tlea	rdi, [rel LC0]\n"
-    //    "\tmov	eax, 0\n"
-    //    "\tcall	printf\n" "\tnop\n" "\tleave\n" "\tret\n" "\n"
-    //    ";;;;;;;;;;;;;;;;;;;;;;\n"
-    //    , OutFile);
-    //fputs(
-    //    "global main\n"
-    //    "\n"
-    //    "extern printf\n"
-    //    "\n"
-    //    "section .data\n"
-    //    "\t_printint_format db '%d', 0xA\n"
-    //    "\n"
-    //    "section .text\n"
-    //    "\n"
-    //    "main:\n"
-    //    ";;;;;;;;;;;;;;;;;;;;;;\n",
-    //    OutFile);
     fputs(
         "extern printf\n"
         "\n"
@@ -97,7 +68,7 @@ void assembly_postamble()
 
 int assembly_load_int(int value, PrimitiveType type) {
     int r = alloc_register();
-    fprintf(OutFile, "\tmov  \t%s, %d\t\t; %s <- %d\n", reglist[r], value, reglist[r], value);
+    fprintf(OutFile, "\tmov  \t%s, %d\t\t; %s = %d\n", reglist[r], value, reglist[r], value);
     return r;
 }
 
@@ -105,9 +76,9 @@ int assembly_load_global(int id) {
     int r = alloc_register();
     Symbol sym = GlobalSymbols[id];
     if (sym.type == PRIM_INT)
-        fprintf(OutFile, "\tmov  \t%s, [%s]", reglist[r], sym.name);
+        fprintf(OutFile, "\tmov  \t%s, [%s]\n", reglist[r], sym.name);
     else 
-        fprintf(OutFile, "\tmovzx\t%s, byte [%s]", reglist[r], sym.name);
+        fprintf(OutFile, "\tmovzx\t%s, byte [%s]\n", reglist[r], sym.name);
     return r;
 }
 
@@ -151,7 +122,7 @@ void assembly_printint(int r) {
 int assembly_store_global(int r, int id) {
     Symbol sym = GlobalSymbols[id];
     if (sym.type == PRIM_INT)
-        fprintf(OutFile, "\tmov  \t[%s], %s\n", sym.name, reglist[r]);
+        fprintf(OutFile, "\tmov  \t[%s], %s\t\t; %s = %s\n", sym.name, reglist[r], sym.name, reglist[r]);
     else
         fprintf(OutFile, "\tmov  \t[%s], %s\n", sym.name, breglist[r]);
     return r;
@@ -159,10 +130,9 @@ int assembly_store_global(int r, int id) {
 
 void assembly_generate_global_symbol(int id) {
     Symbol sym = GlobalSymbols[id];
-    if (sym.type == PRIM_INT)
-        fprintf(OutFile, "\tcommon\t%s 8:8\n", sym.name);
-    else
-        fprintf(OutFile, "\tcommon\t%s 1:1\n", sym.name);
+    int bytes = sym.type == PRIM_INT ? 4 : 1;
+    fprintf(OutFile, "section .bss\n");
+    fprintf(OutFile, "\t%s: resb %d\n", sym.name, bytes);
 }
 
 int assembly_compare(int r1, int r2, char* compare_operator) {
@@ -263,8 +233,8 @@ int assembly_while(struct ASTNode* n) {
 
 void assembly_funcpreamble(char* name) {
     fprintf(OutFile,
-        "\tsection\t.text\n"
-        "\tglobal\t%s\n"
+        "section\t.text\n"
+        "global\t%s\n"
         "%s:\n" 
         "\tpush \trbp\n"
         "\tmov  \trbp, rsp\n", name, name);
