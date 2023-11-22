@@ -122,11 +122,24 @@ int assembly_store_global(int r, int id) {
     return r;
 }
 
+int get_type_size(PrimitiveType type) {
+    switch (type)
+    {
+    case PRIM_NONE: return 0;
+    case PRIM_VOID: return 0;
+    case PRIM_CHAR: return 1;
+    case PRIM_INT:  return 4;
+    case PRIM_LONG: return 8;
+    default:
+        fprintf(stderr, "Bad type in cgprimsize()");
+        exit(1);
+    }
+}
+
 void assembly_generate_global_symbol(int id) {
     Symbol sym = GlobalSymbols[id];
-    int bytes = sym.type == PRIM_INT ? 4 : 1;
     fprintf(OutFile, "section .bss\n");
-    fprintf(OutFile, "\t%s: resb %d\n", sym.name, bytes);
+    fprintf(OutFile, "\t%s: resb %d\n", sym.name, get_type_size(sym.type));
 }
 
 //int assembly_compare(int r1, int r2, char* compare_operator, char* symbol) {

@@ -2,6 +2,7 @@
 #define DEFINITIONS_H_
 
 #include <stdio.h>
+#include <stdlib.h>
 
 #define MAX_TOKEN_LEN 512 
 
@@ -22,7 +23,8 @@ typedef enum {
 	TOKEN_ELSE,
 	TOKEN_WHILE,
 	TOKEN_FOR,
-	TOKEN_INT, TOKEN_VOID, TOKEN_CHAR,
+	TOKEN_RETURN,
+	TOKEN_VOID, TOKEN_CHAR, TOKEN_INT, TOKEN_LONG
 } TokenType;
 
 typedef struct {
@@ -36,6 +38,7 @@ typedef struct {
 	int curr_line;
 	int curr_char;
 	Token curr_token;
+	Token* rejected_token;
 } Lexer;
 
 typedef enum {
@@ -43,6 +46,7 @@ typedef enum {
 	PRIM_VOID,
 	PRIM_CHAR,
 	PRIM_INT,
+	PRIM_LONG,
 } PrimitiveType;
 
 // AST: Abstract Syntaxt Tree
@@ -61,7 +65,8 @@ typedef enum {
 	NODE_GLUE,
 	NODE_PRINT,
 	NODE_FUNCTION,
-	NODE_WIDEN
+	NODE_WIDEN,
+	NODE_FUNCCALL,
 } OperationType;
 
 struct ASTNode {
@@ -87,5 +92,7 @@ typedef struct {
 } Symbol;
 
 Symbol GlobalSymbols[NSYMBOLS];
+
+void match(TokenType type, Lexer* lexer);
 
 #endif // DEFINITIONS_H_

@@ -33,6 +33,7 @@ char* token_to_string(TokenType t) {
 	if (t == TOKEN_INT)              return "TOKEN_INT            ";
 	if (t == TOKEN_VOID)             return "TOKEN_VOID           ";
 	if (t == TOKEN_CHAR)             return "TOKEN_CHAR           ";
+	if (t == TOKEN_LONG)             return "TOKEN_LONG           ";
 
 	return "???";
 }
@@ -81,7 +82,7 @@ int scan_int(Lexer* lexer) {
 	return int_value;
 }
 
-char* scan_token(Lexer* lexer, char* buffer) {
+char* scan_identifier(Lexer* lexer, char* buffer) {
 	int k, int_value = 0, c = lexer->curr_char;
 
 	int i = 0;
@@ -101,27 +102,46 @@ char* scan_token(Lexer* lexer, char* buffer) {
 }
 
 PrimitiveType parse_type(TokenType t) {
-	if (t == TOKEN_INT)  return (PRIM_INT);
-	if (t == TOKEN_CHAR) return (PRIM_CHAR);
 	if (t == TOKEN_VOID) return (PRIM_VOID);
+	if (t == TOKEN_CHAR) return (PRIM_CHAR);
+	if (t == TOKEN_INT)  return (PRIM_INT);
+	if (t == TOKEN_LONG)  return (PRIM_LONG);
 	fprintf(stderr, "Illegal type");
 	exit(1);
 }
 
 int keyword_token(char* s) {
 	if (strcmp(s, "print") == 0) return TOKEN_PRINT;
-	if (strcmp(s, "int") == 0) return TOKEN_INT;
-	if (strcmp(s, "char") == 0) return TOKEN_CHAR;
 	if (strcmp(s, "if") == 0) return TOKEN_IF;
 	if (strcmp(s, "else") == 0) return TOKEN_ELSE;
 	if (strcmp(s, "while") == 0) return TOKEN_WHILE;
 	if (strcmp(s, "for") == 0) return TOKEN_FOR;
+	if (strcmp(s, "return") == 0) return TOKEN_FOR;
+
 	if (strcmp(s, "void") == 0) return TOKEN_VOID;
+	if (strcmp(s, "char") == 0) return TOKEN_CHAR;
+	if (strcmp(s, "int") == 0) return TOKEN_INT;
+	if (strcmp(s, "long") == 0) return TOKEN_LONG;
 	return 0;
 }
 
-Token lexer_next_token(Lexer* lexer) {
+void lexer_reject_token(Token* t, Lexer* lexer) {
+	if (lexer->rejected_token != NULL) {
+		fprintf(stderr, "Can't reject token twice");
+		exit(1);
+	}
+	lexer->rejected_token = t;
+}
+
+int lexer_next_token(Lexer* lexer) {
 	int c = next_non_space_char(lexer);
+
+	if (lexer->rejected_token != NULL) {
+		lexer->curr_token = *lexer->rejected_token;
+		lexer->rejected_token = NULL;
+		return 1;
+	}
+
 	Token t = {0};
 
 	int c2 = c;
@@ -181,7 +201,7 @@ Token lexer_next_token(Lexer* lexer) {
 			break;
 		}
 		else if (isalpha(c) || '_' == c) {
-			scan_token(lexer, &Text);
+			scan_identifier(lexer, &Text);
 			t.tokenType = keyword_token(Text);
 
 			if (!t.tokenType) {
@@ -201,5 +221,5 @@ Token lexer_next_token(Lexer* lexer) {
 		printf("%s\t%c\t%d\n", token_to_string(t.tokenType), c2, t.value);
 
 
-	return t;
+	return 1;
 }

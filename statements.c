@@ -1,13 +1,5 @@
 #include "statements.h"
 
-void match(TokenType type, Lexer* lexer) {
-    if (lexer->curr_token.tokenType != type) {
-        printf("Unexpected token on line %d\n", lexer->curr_line);
-        exit(1);
-    }
-    lexer_next_token(lexer);
-}
-
 //declarations
 void variable_declaration(Lexer* lexer) {
     int id;
@@ -171,8 +163,9 @@ struct ASTNode* single_statement(Lexer* lexer) {
     switch (lexer->curr_token.tokenType)
     {
     case TOKEN_PRINT: return print_statement(lexer);
-    case TOKEN_INT:
     case TOKEN_CHAR:
+    case TOKEN_INT:
+    case TOKEN_LONG:
         variable_declaration(lexer); return NULL;
     case TOKEN_IDENTIFIER: return assignment_statement(lexer);
     case TOKEN_IF: return if_statement(lexer);

@@ -1,7 +1,6 @@
 #ifndef SYMBOLS_H_
 #define SYMBOLS_H_
 
-#include <stdio.h>
 #include <string.h>
 #include "definitions.h"
 

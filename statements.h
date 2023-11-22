@@ -1,7 +1,6 @@
 #ifndef STATEMENTS_H_
 #define STATEMENTS_H_
 
-#include <stdio.h>
 #include "lexer.h"
 #include "parser.h"
 #include "code_generator.h"

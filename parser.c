@@ -37,6 +37,25 @@ OperationType arithmetic_operation(TokenType tokenType) {
     return tokenType;
 }
 
+struct ASTNode* parse_funccall(Lexer* lexer) {
+    struct ASTNode* tree;
+    int id;
+
+    if ((id = findGlobal(Text)) == -1) {
+        fprintf(stderr, "Undeclared function %s", Text);
+        exit(1);
+    }
+    match(TOKEN_LPAREN, lexer);
+
+    tree = binexpr(lexer, 0);
+
+    tree = ast_new_unary(NODE_FUNCCALL, GlobalSymbols[id].type, tree, id);
+    
+    match(TOKEN_RPAREN, lexer);
+
+    return tree;
+}
+
 struct ASTNode* parse_primary_factor(Lexer* lexer) {
     struct ASTNode* n;
     int id;

@@ -18,8 +18,8 @@ main:
 	mov  	[j], r8		; j = r8
 	mov  	r8, [i]		; r8 = i
 	mov  	r9, [j]		; r9 = j
-	cmp	r8, r9		; if (r8 >= r9)
-	jge	L1		;   goto L1
+	cmp	r8, r9		; if r8 >= r9
+	jge	L1		; goto L1
 	mov  	r8, [i]		; r8 = i
 
 	mov  	rdi, _format	; printf r8
