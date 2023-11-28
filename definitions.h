@@ -6,16 +6,23 @@
 
 #define MAX_TOKEN_LEN 512 
 
+int Functionid;
+
 char Text[MAX_TOKEN_LEN + 1];
 
 typedef enum {
 	TOKEN_EOF,
+
+	//operators
 	TOKEN_PLUS, TOKEN_MINUS,
 	TOKEN_STAR, TOKEN_SLASH,
 	TOKEN_EQUALS, TOKEN_NOTEQUALS,
 	TOKEN_LESS, TOKEN_GREATER, TOKEN_LESSOREQUALS, TOKEN_GREATEROREQUALS,
 	TOKEN_ASSING, TOKEN_SEMICOLON, TOKEN_INTLIT, TOKEN_IDENTIFIER,
 	TOKEN_LPAREN, TOKEN_RPAREN, TOKEN_LBRACE, TOKEN_RBRACE,
+
+	TOKEN_AMPERSAND,
+	TOKEN_AND,
 
 	//keywords
 	TOKEN_PRINT,
@@ -43,10 +50,10 @@ typedef struct {
 
 typedef enum {
 	PRIM_NONE,
-	PRIM_VOID,
-	PRIM_CHAR,
-	PRIM_INT,
-	PRIM_LONG,
+	PRIM_VOID, PRIM_VOIDPTR,
+	PRIM_CHAR, PRIM_CHARPTR,
+	PRIM_INT, PRIM_INTPTR,
+	PRIM_LONG, PRIM_LONGPTR,
 } PrimitiveType;
 
 // AST: Abstract Syntaxt Tree
@@ -67,6 +74,7 @@ typedef enum {
 	NODE_FUNCTION,
 	NODE_WIDEN,
 	NODE_FUNCCALL,
+	NODE_RETURN,
 } OperationType;
 
 struct ASTNode {
@@ -89,10 +97,12 @@ typedef struct {
 	char* name;
 	PrimitiveType type;
 	StructuralType stype;
+	int endlabel;
 } Symbol;
 
 Symbol GlobalSymbols[NSYMBOLS];
 
 void match(TokenType type, Lexer* lexer);
+int label_id();
 
 #endif // DEFINITIONS_H_

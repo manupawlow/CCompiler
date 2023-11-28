@@ -3,14 +3,10 @@
 static int freereg[4];
 static char* reglist[4] = { "r8", "r9", "r10", "r11" };
 static char* breglist[4] = { "r8b", "r9b", "r10b", "r11b" };
+static char* dreglist[4] = { "r8d", "r9d", "r10d", "r11d" };
 
 void setOutputFile(FILE* output) {
     OutFile = output;
-}
-
-static int label_id(void) {
-    static int id = 1;
-    return (id++);
 }
 
 void freeall_registers(void)
@@ -66,16 +62,6 @@ int assembly_load_int(int value, PrimitiveType type) {
     return r;
 }
 
-int assembly_load_global(int id) {
-    int r = alloc_register();
-    Symbol sym = GlobalSymbols[id];
-    if (sym.type == PRIM_INT)
-        fprintf(OutFile, "\tmov  \t%s, [%s]\t\t; %s = %s\n", reglist[r], sym.name, reglist[r], sym.name);
-    else 
-        fprintf(OutFile, "\tmovzx\t%s, byte [%s]\t\t; %s = %s\n", reglist[r], sym.name, reglist[r], sym.name);
-    return r;
-}
-
 int assembly_add(int r1, int r2) {
     fprintf(OutFile, "\tadd  \t%s, %s\t\t; %s = %s + %s\n", reglist[r2], reglist[r1], reglist[r2], reglist[r2], reglist[r1]);
     free_register(r1);
@@ -113,12 +99,43 @@ void assembly_printint(int r) {
     free_register(r);
 }
 
+int assembly_load_global(int id) {
+    int r = alloc_register();
+    Symbol sym = GlobalSymbols[id];
+    switch (sym.type)
+    {
+    case PRIM_CHAR: 
+        fprintf(OutFile, "\tmovzx\t%s, byte [%s]\n", reglist[r], sym.name); 
+        break;
+    case PRIM_INT:  
+        fprintf(OutFile, "\txor  \t%s, %s\n", reglist[r], reglist[r]);
+        fprintf(OutFile, "\tmov  \t%s, dword [%s]\n", dreglist[r], sym.name);
+        break;
+    case PRIM_LONG: 
+        fprintf(OutFile, "\tmov  \t%s, [%s]\n", reglist[r], sym.name);
+        break;
+    default:
+        fprintf(stderr, "Bad type in assembly_store_global()");
+        exit(1);
+        break;
+    }
+
+    return r;
+}
+
 int assembly_store_global(int r, int id) {
     Symbol sym = GlobalSymbols[id];
-    if (sym.type == PRIM_INT)
-        fprintf(OutFile, "\tmov  \t[%s], %s\t\t; %s = %s\n", sym.name, reglist[r], sym.name, reglist[r]);
-    else
-        fprintf(OutFile, "\tmov  \t[%s], %s\t\t; %s = %s\n", sym.name, breglist[r], sym.name, breglist[r]);
+
+    switch (sym.type)
+    {
+    case PRIM_CHAR: fprintf(OutFile, "\tmov  \t[%s], %s\n", sym.name, breglist[r]); break;
+    case PRIM_INT:  fprintf(OutFile, "\tmov  \t[%s], %s\n", sym.name, dreglist[r]); break;
+    case PRIM_LONG: fprintf(OutFile, "\tmov  \t[%s], %s\n", sym.name, reglist[r]); break;
+    default:
+        fprintf(stderr, "Bad type in assembly_store_global()");
+        exit(1);
+        break;
+    }
     return r;
 }
 
@@ -241,7 +258,8 @@ int assembly_while(struct ASTNode* n) {
     return -1;
 }
 
-void assembly_funcpreamble(char* name) {
+void assembly_funcpreamble(int id) {
+    char* name = GlobalSymbols[id].name;
     fprintf(OutFile,
         "section\t.text\n"
         "global\t%s\n"
@@ -250,9 +268,9 @@ void assembly_funcpreamble(char* name) {
         "\tmov  \trbp, rsp\n", name, name);
 }
 
-void assembly_funcpostamble() {
+void assembly_funcpostamble(int id) {
+    assembly_label(GlobalSymbols[id].endlabel);
     fputs(
-        "\tmov  \teax, 0\n"
         "\tpop  \trbp\n" 
         "\tret\n"
         , OutFile);
@@ -261,6 +279,34 @@ void assembly_funcpostamble() {
 int assembly_widen(int r, PrimitiveType oldType, PrimitiveType newType) {
     //Nothing to do
     return r;
+}
+
+void assembly_return(int r, int id) {
+    switch (GlobalSymbols[id].type)
+    {
+    case PRIM_CHAR:
+        fprintf(OutFile, "\tmovzx\teax, %s\n", breglist[r]);
+        break;
+    case PRIM_INT:
+        fprintf(OutFile, "\tmov  \teax, %s\n", dreglist[r]);
+        break;
+    case PRIM_LONG:
+        fprintf(OutFile, "\tmov  \trax, %s\n", reglist[r]);
+        break;
+    default:
+        fprintf(stderr, "Bad ASTop in cgcompare_and_set()");
+        exit(1);
+    }
+    assembly_jump(GlobalSymbols[id].endlabel);
+}
+
+int assembly_function_call(int r, int id) {
+    int outr = alloc_register();
+    fprintf(OutFile, "\tmov  \trdi, %s\n", reglist[r]);
+    fprintf(OutFile, "\tcall \t%s\n", GlobalSymbols[id].name);
+    fprintf(OutFile, "\tmov  \t%s, rax\n", reglist[outr]);
+    free_register(r);
+    return outr;
 }
 
 //genAST
@@ -276,9 +322,9 @@ int assembly_ast_node(struct ASTNode* node, int reg, OperationType parent_type) 
         freeall_registers();
         return -1;
     case NODE_FUNCTION:
-        assembly_funcpreamble(GlobalSymbols[node->value].name);
+        assembly_funcpreamble(node->value);
         assembly_ast_node(node->left, -1, node->operation);
-        assembly_funcpostamble();
+        assembly_funcpostamble(node->value);
         return -1;
     }
 
@@ -316,6 +362,11 @@ int assembly_ast_node(struct ASTNode* node, int reg, OperationType parent_type) 
         return -1;
     case NODE_WIDEN:
         return node->left != NULL ? assembly_widen(leftRegister, node->left->type, node->type) : NULL;
+    case NODE_RETURN:
+        assembly_return(leftRegister, Functionid);
+        return -1;
+    case NODE_FUNCCALL:
+        return assembly_function_call(leftRegister, node->value);
     default:
         fprintf(stderr, "[CG] Unknown AST operator %d\n", node->operation);
         exit(1);

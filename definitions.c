@@ -7,3 +7,8 @@ void match(TokenType type, Lexer* lexer) {
 	}
 	lexer_next_token(lexer);
 }
+
+int label_id() {
+	static int id = 1;
+	return (id++);
+}

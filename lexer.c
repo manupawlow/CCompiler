@@ -7,6 +7,7 @@ void lexer_error(char c, int line) {
 
 char* token_to_string(TokenType t) {
 	if (t == TOKEN_EOF)              return "TOKEN_EOF            ";
+
 	if (t == TOKEN_PLUS)             return "TOKEN_PLUS           ";
 	if (t == TOKEN_MINUS)            return "TOKEN_MINUS          ";
 	if (t == TOKEN_STAR)             return "TOKEN_STAR           ";
@@ -17,6 +18,10 @@ char* token_to_string(TokenType t) {
 	if (t == TOKEN_GREATER)          return "TOKEN_GREATER        ";
 	if (t == TOKEN_LESSOREQUALS)     return "TOKEN_LESSOREQUALS   ";
 	if (t == TOKEN_GREATEROREQUALS)  return "TOKEN_GREATEROREQUALS";
+	
+	if (t == TOKEN_AMPERSAND)		 return "TOKEN_AMPERSAND      ";
+	if (t == TOKEN_AND)				 return "TOKEN_AND            ";
+	
 	if (t == TOKEN_ASSING)           return "TOKEN_ASSING         ";
 	if (t == TOKEN_SEMICOLON)        return "TOKEN_SEMICOLON      ";
 	if (t == TOKEN_INTLIT)           return "TOKEN_INTLIT         ";
@@ -34,8 +39,8 @@ char* token_to_string(TokenType t) {
 	if (t == TOKEN_VOID)             return "TOKEN_VOID           ";
 	if (t == TOKEN_CHAR)             return "TOKEN_CHAR           ";
 	if (t == TOKEN_LONG)             return "TOKEN_LONG           ";
-
-	return "???";
+	if (t == TOKEN_RETURN)			 return "TOKEN_RETURN         ";
+	return "????????             ";
 }
 
 Lexer lexer_new(FILE* source) {
@@ -101,13 +106,25 @@ char* scan_identifier(Lexer* lexer, char* buffer) {
 	buffer[i] = '\0';
 }
 
-PrimitiveType parse_type(TokenType t) {
-	if (t == TOKEN_VOID) return (PRIM_VOID);
-	if (t == TOKEN_CHAR) return (PRIM_CHAR);
-	if (t == TOKEN_INT)  return (PRIM_INT);
-	if (t == TOKEN_LONG)  return (PRIM_LONG);
-	fprintf(stderr, "Illegal type");
-	exit(1);
+PrimitiveType parse_type(TokenType t, Lexer* lexer) {
+	PrimitiveType type;
+	switch (t) {
+	case TOKEN_VOID: return PRIM_VOID;
+	case TOKEN_CHAR: return PRIM_CHAR;
+	case TOKEN_INT: return PRIM_INT;
+	case TOKEN_LONG: return PRIM_LONG;
+	default:
+		fprintf(stderr, "Illegal type");
+		exit(1);
+	}
+
+	while (1) {
+		lexer_next_token(lexer);
+		if (lexer->curr_token.tokenType != TOKEN_STAR) break;
+		type = pointer_to(type);
+	}
+
+	return type;
 }
 
 int keyword_token(char* s) {
@@ -116,7 +133,7 @@ int keyword_token(char* s) {
 	if (strcmp(s, "else") == 0) return TOKEN_ELSE;
 	if (strcmp(s, "while") == 0) return TOKEN_WHILE;
 	if (strcmp(s, "for") == 0) return TOKEN_FOR;
-	if (strcmp(s, "return") == 0) return TOKEN_FOR;
+	if (strcmp(s, "return") == 0) return TOKEN_RETURN;
 
 	if (strcmp(s, "void") == 0) return TOKEN_VOID;
 	if (strcmp(s, "char") == 0) return TOKEN_CHAR;
@@ -134,13 +151,14 @@ void lexer_reject_token(Token* t, Lexer* lexer) {
 }
 
 int lexer_next_token(Lexer* lexer) {
-	int c = next_non_space_char(lexer);
 
 	if (lexer->rejected_token != NULL) {
 		lexer->curr_token = *lexer->rejected_token;
 		lexer->rejected_token = NULL;
 		return 1;
 	}
+
+	int c = next_non_space_char(lexer);
 
 	Token t = {0};
 
@@ -192,6 +210,14 @@ int lexer_next_token(Lexer* lexer) {
 		else {
 			ungetc(c, lexer->source);
 			t.tokenType = TOKEN_GREATER;
+		}
+		break;
+	case '&':
+		if ((c = next_char(lexer)) == '&') {
+			t.tokenType = TOKEN_AND;
+		} else {
+			ungetc(c, lexer->source);
+			t.tokenType = TOKEN_AMPERSAND;
 		}
 		break;
 	default:

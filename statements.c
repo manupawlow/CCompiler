@@ -5,30 +5,72 @@ void variable_declaration(Lexer* lexer) {
     int id;
     PrimitiveType type;
 
-    type = parse_type(lexer->curr_token.tokenType);
+    type = parse_type(lexer->curr_token.tokenType, lexer);
     lexer_next_token(lexer);
     match(TOKEN_IDENTIFIER, lexer);
-    id = addGlobal(Text, type, STRU_VARIABLE);
+    id = addGlobal(Text, type, STRU_VARIABLE, 0);
     assembly_generate_global_symbol(id);
     match(TOKEN_SEMICOLON, lexer);
 }
 
 struct ASTNode* function_declaration(Lexer* lexer) {
-    struct ASTNode* tree;
-    int nameslot;
+    struct ASTNode* tree, * finalstmt;
+    int nameslot, type, endlabel;
 
-    match(TOKEN_VOID, lexer);
+    type = parse_type(lexer->curr_token.tokenType, lexer);
+    lexer_next_token(lexer);
     match(TOKEN_IDENTIFIER, lexer);
-    nameslot = addGlobal(Text, PRIM_VOID, STRU_FUNCTION);
+
+    endlabel = label_id();
+    nameslot = addGlobal(Text, type, STRU_FUNCTION, endlabel);
+    Functionid = nameslot;
+
     match(TOKEN_LPAREN, lexer);
     match(TOKEN_RPAREN, lexer);
 
     tree = compound_statement(lexer);
 
+    if (type != PRIM_VOID) {
+        finalstmt = tree->operation == NODE_GLUE ? tree->right : tree;
+        if (finalstmt == NULL || finalstmt->operation != NODE_RETURN) {
+            fprintf(stderr, "No return for function with non-void type");
+            exit(1);
+        }
+    }
+
     return ast_new_unary(NODE_FUNCTION, PRIM_VOID, tree, nameslot);
 }
 
 //statements
+struct ASTNode* return_statement(Lexer* lexer) {
+    struct ASTNode* tree;
+    int returntype, functype;
+
+    if (GlobalSymbols[Functionid].type == PRIM_VOID) {
+        fprintf(stderr, "Can't return from a void function");
+        exit(1);
+    }
+
+    match(TOKEN_RETURN, lexer);
+
+    tree = binexpr(lexer, 0);
+
+    returntype = tree->type;
+    functype = GlobalSymbols[Functionid].type;
+
+    if (!type_compatible(&returntype, &functype, 1)) {
+        fprintf(stderr, "Incompatible types");
+        exit(1);
+    }
+
+    if (returntype)
+        tree = ast_new_unary(returntype, functype, tree, 0);
+
+    tree = ast_new_unary(NODE_RETURN, PRIM_NONE, tree, 0);
+
+    return tree;
+}
+
 struct ASTNode* print_statement(Lexer* lexer) {
     struct ASTNode* tree;
     PrimitiveType leftType, rightType;
@@ -58,6 +100,10 @@ struct ASTNode* assignment_statement(Lexer* lexer) {
     int id;
 
     match(TOKEN_IDENTIFIER, lexer);
+
+    if (lexer->curr_token.tokenType == TOKEN_LPAREN) {
+        return parse_funccall(lexer);
+    }
 
     if ((id = findGlobal(Text)) == -1) {
         fprintf(stderr, "Undeclared variable %s", Text);
@@ -171,6 +217,7 @@ struct ASTNode* single_statement(Lexer* lexer) {
     case TOKEN_IF: return if_statement(lexer);
     case TOKEN_WHILE: return while_statement(lexer);
     case TOKEN_FOR: return for_statement(lexer);
+    case TOKEN_RETURN: return return_statement(lexer);
     default:
         printf("Syntax error");
         exit(1);
@@ -187,7 +234,7 @@ struct ASTNode* compound_statement(Lexer* lexer) {
 
         tree = single_statement(lexer);
 
-        if (tree != NULL && (tree->operation == NODE_PRINT || tree->operation == NODE_ASSIGN))
+        if (tree != NULL && (tree->operation == NODE_PRINT  || tree->operation == NODE_ASSIGN || tree->operation == NODE_RETURN || tree->operation == NODE_FUNCCALL))
             match(TOKEN_SEMICOLON, lexer);
 
         if (tree != NULL) {

@@ -9,5 +9,6 @@ struct ASTNode* binexpr(Lexer* lexer, int prev_precedence);
 struct ASTNode* ast_new_node(OperationType operation, PrimitiveType type, struct ASTNode* left, struct ASTNode* mid, struct ASTNode* right, int value);
 struct ASTNode* ast_new_leaf(OperationType operation, PrimitiveType type, int value);
 struct ASTNode* ast_new_unary(OperationType operation, PrimitiveType type, struct ASTNode* left, int value);
+struct ASTNode* parse_funccall(Lexer* lexer);
 
 #endif // PARSER_H_

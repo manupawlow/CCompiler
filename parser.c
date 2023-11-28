@@ -45,6 +45,12 @@ struct ASTNode* parse_funccall(Lexer* lexer) {
         fprintf(stderr, "Undeclared function %s", Text);
         exit(1);
     }
+
+    if (GlobalSymbols[id].stype != STRU_FUNCTION) {
+        fprintf(stderr, "%s is not a function", GlobalSymbols[id].name);
+        exit(1);
+    }
+
     match(TOKEN_LPAREN, lexer);
 
     tree = binexpr(lexer, 0);
@@ -70,6 +76,13 @@ struct ASTNode* parse_primary_factor(Lexer* lexer) {
             n = ast_new_leaf(NODE_INTLIT, PRIM_INT, lexer->curr_token.value);
         break;
     case TOKEN_IDENTIFIER:
+
+        lexer_next_token(lexer);
+        if (lexer->curr_token.tokenType == TOKEN_LPAREN) {
+            return parse_funccall(lexer);
+        }
+        lexer_reject_token(&lexer->curr_token, lexer);
+
         id = findGlobal(Text);
         if (id == -1) {
             fprintf(stderr, ERROR, Text);

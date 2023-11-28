@@ -4,9 +4,11 @@
 #include <ctype.h>
 #include <string.h>
 #include "definitions.h"
+#include "types.h"
 
 Lexer lexer_new(FILE* source);
 int lexer_next_token(Lexer* lexer);
-int parse_type(TokenType t);
+void lexer_reject_token(Token* t, Lexer* lexer);
+int parse_type(TokenType t, Lexer* lexer);
 
 #endif // LEXER_H_

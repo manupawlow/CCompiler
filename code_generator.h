@@ -24,5 +24,6 @@ void assembly_printint(int r);
 int assembly_store_global(int r, int id);
 void assembly_generate_global_symbol(int id);
 int assembly_if(struct ASTNode* n);
+int get_type_size(PrimitiveType type);
 
 #endif // CODE_GENERATOR_H_

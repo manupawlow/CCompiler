@@ -1,5 +1,7 @@
 [Semantic analysis]
 
+//funccall -> 
+
 compound_statement: 
       '{' '}'
     | '{' statement '}'
@@ -12,23 +14,27 @@ compound_statement:
     | if_statement
     | while_statement
     | for_statement
+    | return_statement
 
 print_statement: 'print' expression ';'
-declaration: 'int' identifier ';'
-assignment_statement: identifier '=' expression ';'
 
+declaration: 'int' IDENTIFIER ';'
+
+return_statement: 'return' '(' expression ')'  ;
+
+assignment_statement: IDENTIFIER '=' expression ';'
+
+if_head: 'if' '(' true_false_expression ')' compound_statement
 if_statement: 
       if_head
     | if_head 'else' compound_statement
-if_head: 'if' '(' true_false_expression ')' compound_statement
 
 while_statement: 'while' '(' true_false_expression ')' compound_statement
 
 for_statement: 'for' '(' preop_statement ';' true_false_expression ';' postop_statement ')' compound_statement
 preop_statement:  statement
 postop_statement: statement
-
-function_declaration: 'void' identifier '(' ')' compound_statement
+function_declaration: 'void' IDENTIFIER '(' ')' compound_statement
 
 expression: additive_expression
  
@@ -38,9 +44,9 @@ additive_expression:
     | additive_expression '-' multiplicative_expression
 
 multiplicative_expression:
-      number
-    | number '*' multiplicative_expression
-    | number '/' multiplicative_expression
+      NUMBER
+    | NUMBER '*' multiplicative_expression
+    | NUMBER '/' multiplicative_expression
 
-number:  TOKEN_INT
-identifier:  TOKEN_IDENTIFIER
+NUMBER:     TOKEN_INT
+IDENTIFIER: TOKEN_IDENTIFIER

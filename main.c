@@ -5,33 +5,6 @@
 #include "code_generator.h"
 #include "statements.h"
 
-//void printTree(const ASTNode* node, const char* prefix, int isRight)
-//{
-//	if (node != NULL)
-//	{
-//		char newPrefix[100];
-//		char* val;
-//
-//		if (isRight) {
-//			printf("%s|--", prefix);
-//			print_ast_node(node);
-//			printf("\n");
-//			strcpy(newPrefix, prefix);
-//			strcat(newPrefix, "|   ");
-//		}
-//		else {
-//			printf("%s --", prefix);
-//			print_ast_node(node);
-//			printf("\n");
-//			strcpy(newPrefix, prefix);
-//			strcat(newPrefix, "    ");
-//		}
-//
-//		printTree(node->right, newPrefix, 1);
-//		printTree(node->left, newPrefix, 0);
-//	}
-//}
-
 int interpretAST(struct ASTNode* n) {
 	int leftval = 0, rightval = 0;
 
