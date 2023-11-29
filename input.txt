@@ -1,17 +1,11 @@
-#include <stdio.h>
-void printint(long x) {
-  printf("%ld\n", x);
-}
+int main() {
+  char  a; char *b; char  c;
+  int   d; int  *e; int   f;
 
-int fred() {
-  return 20;
-}
+  a= 18; print a;
+  b= &a; c= *b; print c;
 
-void main() {
-  int result;
-  printint(10);
-  result= fred(15);
-  printint(result);
-  printint(fred(15)+10);
+  d= 12; print d;
+  e= &d; f= *e; print f;
   return 0;
 }

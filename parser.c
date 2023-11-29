@@ -62,6 +62,40 @@ struct ASTNode* parse_funccall(Lexer* lexer) {
     return tree;
 }
 
+struct ASTNode* parse_prefix(Lexer* lexer) {
+    struct ASTNode* tree;
+    switch (lexer->curr_token.tokenType)
+    {
+    case TOKEN_AMPERSAND:
+        lexer_next_token(lexer);
+        tree = parse_prefix(lexer);
+
+        if (tree->operation != NODE_IDENTIFIER) {
+            fprintf(stderr, "& operator must be followed by an identifier");
+            exit(1);
+        }
+
+        tree->operation = NODE_ADDRESS; 
+        tree->type = pointer_to(tree->type);
+        break;
+    case TOKEN_STAR:
+        lexer_next_token(lexer);
+        tree = parse_prefix(lexer);
+
+        if (tree->operation != NODE_IDENTIFIER && tree->operation != NODE_DEREFERENCE) {
+            fprintf(stderr, "& operator must be followed by an identifier");
+            exit(1);
+        }
+
+        tree = ast_new_unary(NODE_DEREFERENCE, value_at(tree->type), tree, 0);
+        break;
+    default:
+        tree = parse_primary_factor(lexer);
+        break;
+    }
+    return tree;
+}
+
 struct ASTNode* parse_primary_factor(Lexer* lexer) {
     struct ASTNode* n;
     int id;
@@ -119,7 +153,7 @@ struct ASTNode* binexpr(Lexer* lexer, int prev_precedence) {
     _line = &lexer->curr_line;
     struct ASTNode *left, *right;
 
-    left = parse_primary_factor(lexer);
+    left = parse_prefix(lexer);
     
     TokenType tokenType = lexer->curr_token.tokenType;
     if (tokenType == TOKEN_SEMICOLON || tokenType == TOKEN_RPAREN) {

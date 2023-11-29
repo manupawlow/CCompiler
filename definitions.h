@@ -75,6 +75,8 @@ typedef enum {
 	NODE_WIDEN,
 	NODE_FUNCCALL,
 	NODE_RETURN,
+	NODE_ADDRESS,
+	NODE_DEREFERENCE,
 } OperationType;
 
 struct ASTNode {
@@ -104,5 +106,6 @@ Symbol GlobalSymbols[NSYMBOLS];
 
 void match(TokenType type, Lexer* lexer);
 int label_id();
+char* token_to_string(TokenType t);
 
 #endif // DEFINITIONS_H_

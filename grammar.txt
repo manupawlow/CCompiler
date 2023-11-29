@@ -38,6 +38,10 @@ function_declaration: 'void' IDENTIFIER '(' ')' compound_statement
 
 expression: additive_expression
  
+prefix_expression: primary
+    | '*' prefix_expression
+    | '&' prefix_expression
+
 additive_expression:
       multiplicative_expression
     | additive_expression '+' multiplicative_expression

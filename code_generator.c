@@ -111,11 +111,14 @@ int assembly_load_global(int id) {
         fprintf(OutFile, "\txor  \t%s, %s\n", reglist[r], reglist[r]);
         fprintf(OutFile, "\tmov  \t%s, dword [%s]\n", dreglist[r], sym.name);
         break;
-    case PRIM_LONG: 
+    case PRIM_LONG:
+    case PRIM_CHARPTR:
+    case PRIM_INTPTR:
+    case PRIM_LONGPTR:
         fprintf(OutFile, "\tmov  \t%s, [%s]\n", reglist[r], sym.name);
         break;
     default:
-        fprintf(stderr, "Bad type in assembly_store_global()");
+        fprintf(stderr, "Bad type in assembly_load_global()");
         exit(1);
         break;
     }
@@ -130,7 +133,11 @@ int assembly_store_global(int r, int id) {
     {
     case PRIM_CHAR: fprintf(OutFile, "\tmov  \t[%s], %s\n", sym.name, breglist[r]); break;
     case PRIM_INT:  fprintf(OutFile, "\tmov  \t[%s], %s\n", sym.name, dreglist[r]); break;
-    case PRIM_LONG: fprintf(OutFile, "\tmov  \t[%s], %s\n", sym.name, reglist[r]); break;
+    case PRIM_LONG:
+    case PRIM_CHARPTR:
+    case PRIM_INTPTR:
+    case PRIM_LONGPTR:
+        fprintf(OutFile, "\tmov  \t[%s], %s\n", sym.name, reglist[r]); break;
     default:
         fprintf(stderr, "Bad type in assembly_store_global()");
         exit(1);
@@ -147,6 +154,11 @@ int get_type_size(PrimitiveType type) {
     case PRIM_CHAR: return 1;
     case PRIM_INT:  return 4;
     case PRIM_LONG: return 8;
+    case PRIM_VOIDPTR:
+    case PRIM_CHARPTR:
+    case PRIM_INTPTR:
+    case PRIM_LONGPTR:
+        return 8;
     default:
         fprintf(stderr, "Bad type in cgprimsize()");
         exit(1);
@@ -309,6 +321,22 @@ int assembly_function_call(int r, int id) {
     return outr;
 }
 
+int assembly_address(int id) {
+    int r = alloc_register();
+    fprintf(OutFile, "\tmov  \t%s, %s\n", reglist[r], GlobalSymbols[id].name);
+    return r;
+}
+
+int assembly_dereference(int r, PrimitiveType type) {
+    switch (type)
+    {
+    case PRIM_CHARPTR:  fprintf(OutFile, "\tmovzx\t%s, byte [%s]\n", reglist[r], reglist[r]); break;
+    case PRIM_INTPTR:   fprintf(OutFile, "\tmovzx\t%s, word [%s]\n", reglist[r], reglist[r]); break;
+    case PRIM_LONGPTR:  fprintf(OutFile, "\tmov  \t%s, [%s]\n", reglist[r], reglist[r]); break;
+    }
+    return r;
+}
+
 //genAST
 int assembly_ast_node(struct ASTNode* node, int reg, OperationType parent_type) {
 	
@@ -356,17 +384,15 @@ int assembly_ast_node(struct ASTNode* node, int reg, OperationType parent_type) 
     case NODE_IDENTIFIER: return assembly_load_global(node->value);
     case NODE_LVALUEIDENT: return assembly_store_global(reg, node->value);
     case NODE_ASSIGN: return rightRegister;
+    case NODE_WIDEN: return node->left != NULL ? assembly_widen(leftRegister, node->left->type, node->type) : NULL;
+    case NODE_RETURN: assembly_return(leftRegister, Functionid); return -1;
+    case NODE_FUNCCALL: return assembly_function_call(leftRegister, node->value);
+    case NODE_ADDRESS: return assembly_address(node->value);
+    case NODE_DEREFERENCE: return assembly_dereference(leftRegister, node->left->value);
     case NODE_PRINT:
         assembly_printint(leftRegister);
         freeall_registers();
-        return -1;
-    case NODE_WIDEN:
-        return node->left != NULL ? assembly_widen(leftRegister, node->left->type, node->type) : NULL;
-    case NODE_RETURN:
-        assembly_return(leftRegister, Functionid);
-        return -1;
-    case NODE_FUNCCALL:
-        return assembly_function_call(leftRegister, node->value);
+    return -1; 
     default:
         fprintf(stderr, "[CG] Unknown AST operator %d\n", node->operation);
         exit(1);

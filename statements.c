@@ -6,7 +6,6 @@ void variable_declaration(Lexer* lexer) {
     PrimitiveType type;
 
     type = parse_type(lexer->curr_token.tokenType, lexer);
-    lexer_next_token(lexer);
     match(TOKEN_IDENTIFIER, lexer);
     id = addGlobal(Text, type, STRU_VARIABLE, 0);
     assembly_generate_global_symbol(id);
@@ -18,7 +17,6 @@ struct ASTNode* function_declaration(Lexer* lexer) {
     int nameslot, type, endlabel;
 
     type = parse_type(lexer->curr_token.tokenType, lexer);
-    lexer_next_token(lexer);
     match(TOKEN_IDENTIFIER, lexer);
 
     endlabel = label_id();
