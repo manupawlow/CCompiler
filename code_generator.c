@@ -47,13 +47,8 @@ void assembly_preamble()
         OutFile);
 }
 
-void assembly_postamble()
-{
-    fputs(
-        "\tmov  \teax, 0\n"
-        "\tpop  \trbp\n" 
-        "\tret\n"
-        , OutFile);
+void assembly_postamble() {
+    //Nothing to do
 }
 
 int assembly_load_int(int value, PrimitiveType type) {
@@ -126,6 +121,7 @@ int assembly_load_global(int id) {
     return r;
 }
 
+//saves register value into variable
 int assembly_store_global(int r, int id) {
     Symbol sym = GlobalSymbols[id];
 
@@ -323,7 +319,8 @@ int assembly_function_call(int r, int id) {
 
 int assembly_address(int id) {
     int r = alloc_register();
-    fprintf(OutFile, "\tmov  \t%s, %s\n", reglist[r], GlobalSymbols[id].name);
+    //fprintf(OutFile, "\tmov  \t%s, %s\n", reglist[r], GlobalSymbols[id].name);
+    fprintf(OutFile, "\tlea  \t%s, [%s]\n", reglist[r], GlobalSymbols[id].name);
     return r;
 }
 
@@ -388,7 +385,7 @@ int assembly_ast_node(struct ASTNode* node, int reg, OperationType parent_type) 
     case NODE_RETURN: assembly_return(leftRegister, Functionid); return -1;
     case NODE_FUNCCALL: return assembly_function_call(leftRegister, node->value);
     case NODE_ADDRESS: return assembly_address(node->value);
-    case NODE_DEREFERENCE: return assembly_dereference(leftRegister, node->left->value);
+    case NODE_DEREFERENCE: return assembly_dereference(leftRegister, node->left->type);
     case NODE_PRINT:
         assembly_printint(leftRegister);
         freeall_registers();

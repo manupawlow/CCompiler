@@ -1,23 +1,54 @@
 #include "statements.h"
 
 //declarations
-void variable_declaration(Lexer* lexer) {
-    int id;
+void global_declarations(Lexer* lexer) {
+    struct ASTNode* tree;
     PrimitiveType type;
 
-    type = parse_type(lexer->curr_token.tokenType, lexer);
-    match(TOKEN_IDENTIFIER, lexer);
-    id = addGlobal(Text, type, STRU_VARIABLE, 0);
-    assembly_generate_global_symbol(id);
-    match(TOKEN_SEMICOLON, lexer);
+    while (1) {
+        type = parse_type(lexer);
+        match(TOKEN_IDENTIFIER, lexer);
+
+        if (lexer->curr_token.tokenType == TOKEN_LPAREN) {
+            tree = function_declaration(lexer, type);
+            assembly_ast_node(tree, -1, 0);
+        } else {
+            variable_declaration(lexer, type);
+        }
+        if (lexer->curr_token.tokenType == TOKEN_EOF)
+            break;
+    }
 }
 
-struct ASTNode* function_declaration(Lexer* lexer) {
-    struct ASTNode* tree, * finalstmt;
-    int nameslot, type, endlabel;
+void variable_declaration(Lexer* lexer, PrimitiveType type) {
+    int id;
 
-    type = parse_type(lexer->curr_token.tokenType, lexer);
-    match(TOKEN_IDENTIFIER, lexer);
+    while (1) {
+        id = addGlobal(Text, type, STRU_VARIABLE, 0);
+        assembly_generate_global_symbol(id);
+
+        if (lexer->curr_token.tokenType == TOKEN_SEMICOLON) {
+            lexer_next_token(lexer);
+            return;
+        }
+
+        if (lexer->curr_token.tokenType == TOKEN_COMMA) {
+            lexer_next_token(lexer);
+            match(TOKEN_IDENTIFIER, lexer);
+            continue;
+        }
+
+        fprintf(stderr, "Missing , or ; after identifier");
+        exit(1);
+    }
+}
+
+struct ASTNode* function_declaration(Lexer* lexer, PrimitiveType type) {
+    struct ASTNode* tree, * finalstmt;
+    int nameslot, endlabel;
+
+    //type = parse_type(lexer->curr_token.tokenType, lexer);
+    //match(TOKEN_IDENTIFIER, lexer);
 
     endlabel = label_id();
     nameslot = addGlobal(Text, type, STRU_FUNCTION, endlabel);
@@ -50,6 +81,7 @@ struct ASTNode* return_statement(Lexer* lexer) {
     }
 
     match(TOKEN_RETURN, lexer);
+    match(TOKEN_LPAREN, lexer);
 
     tree = binexpr(lexer, 0);
 
@@ -66,6 +98,8 @@ struct ASTNode* return_statement(Lexer* lexer) {
 
     tree = ast_new_unary(NODE_RETURN, PRIM_NONE, tree, 0);
 
+    match(TOKEN_RPAREN, lexer);
+
     return tree;
 }
 
@@ -75,6 +109,8 @@ struct ASTNode* print_statement(Lexer* lexer) {
     int reg;
 
     match(TOKEN_PRINT, lexer);
+    match(TOKEN_LPAREN, lexer);
+
     tree = binexpr(lexer, 0);
 
     leftType = PRIM_INT;
@@ -88,6 +124,8 @@ struct ASTNode* print_statement(Lexer* lexer) {
         tree = ast_new_unary(NODE_WIDEN, PRIM_INT, tree, 0);
 
     tree = ast_new_unary(NODE_PRINT, PRIM_NONE, tree, 0);
+
+    match(TOKEN_RPAREN, lexer);
 
     return tree;
 }
@@ -204,13 +242,18 @@ struct ASTNode* for_statement(Lexer* lexer) {
 }
 
 struct ASTNode* single_statement(Lexer* lexer) {
+    PrimitiveType type;
+
     switch (lexer->curr_token.tokenType)
     {
     case TOKEN_PRINT: return print_statement(lexer);
     case TOKEN_CHAR:
     case TOKEN_INT:
     case TOKEN_LONG:
-        variable_declaration(lexer); return NULL;
+        type = parse_type(lexer);
+        match(TOKEN_IDENTIFIER, lexer);
+        variable_declaration(lexer, type);
+        return NULL;
     case TOKEN_IDENTIFIER: return assignment_statement(lexer);
     case TOKEN_IF: return if_statement(lexer);
     case TOKEN_WHILE: return while_statement(lexer);

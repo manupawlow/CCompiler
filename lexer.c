@@ -68,9 +68,9 @@ char* scan_identifier(Lexer* lexer, char* buffer) {
 	buffer[i] = '\0';
 }
 
-PrimitiveType parse_type(TokenType t, Lexer* lexer) {
+PrimitiveType parse_type(Lexer* lexer) {
 	PrimitiveType type;
-	switch (t) {
+	switch (lexer->curr_token.tokenType) {
 	case TOKEN_VOID: type = PRIM_VOID; break;
 	case TOKEN_CHAR: type = PRIM_CHAR; break;
 	case TOKEN_INT: type = PRIM_INT; break;
@@ -90,7 +90,7 @@ PrimitiveType parse_type(TokenType t, Lexer* lexer) {
 }
 
 int keyword_token(char* s) {
-	if (strcmp(s, "print") == 0) return TOKEN_PRINT;
+	if (strcmp(s, "printint") == 0) return TOKEN_PRINT;
 	if (strcmp(s, "if") == 0) return TOKEN_IF;
 	if (strcmp(s, "else") == 0) return TOKEN_ELSE;
 	if (strcmp(s, "while") == 0) return TOKEN_WHILE;
@@ -138,6 +138,7 @@ int lexer_next_token(Lexer* lexer) {
 	case ')': t.tokenType = TOKEN_RPAREN; break;
 	case '{': t.tokenType = TOKEN_LBRACE; break;
 	case '}': t.tokenType = TOKEN_RBRACE; break;
+	case ',': t.tokenType = TOKEN_COMMA; break;
 	case '=':
 		if ((c = next_char(lexer)) == '=') {
 			t.tokenType = TOKEN_EQUALS;

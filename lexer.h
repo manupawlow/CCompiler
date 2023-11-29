@@ -9,6 +9,6 @@
 Lexer lexer_new(FILE* source);
 int lexer_next_token(Lexer* lexer);
 void lexer_reject_token(Token* t, Lexer* lexer);
-int parse_type(TokenType t, Lexer* lexer);
+int parse_type(Lexer* lexer);
 
 #endif // LEXER_H_

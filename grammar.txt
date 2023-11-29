@@ -18,7 +18,21 @@ compound_statement:
 
 print_statement: 'print' expression ';'
 
-declaration: 'int' IDENTIFIER ';'
+global_declarations: global_declaration | global_declaration global_declarations
+
+global_declaration: function_declaration | variable_declaration
+
+variable_declaration: type identifier_list ';'
+
+function_declaration: type IDENTIFIER '(' ')' compound_statement
+
+type: type_keyword opt_pointer
+
+type_keyword: 'void' | 'char' | 'int' | 'long'
+
+opt_pointer: <empty> | '*' opt_pointer
+
+identifier_list: IDENTIFIER | IDENTIFIER ',' identifier_list
 
 return_statement: 'return' '(' expression ')'  ;
 
@@ -34,7 +48,6 @@ while_statement: 'while' '(' true_false_expression ')' compound_statement
 for_statement: 'for' '(' preop_statement ';' true_false_expression ';' postop_statement ')' compound_statement
 preop_statement:  statement
 postop_statement: statement
-function_declaration: 'void' IDENTIFIER '(' ')' compound_statement
 
 expression: additive_expression
  

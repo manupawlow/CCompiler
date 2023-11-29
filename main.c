@@ -74,18 +74,14 @@ int main()
 	struct ASTNode* tree;
 	Lexer lexer = lexer_new(infile);
 	lexer_next_token(&lexer);
-	
 	assembly_preamble();
-	while (1) {
-		tree = function_declaration(&lexer);
-		assembly_ast_node(tree, -1, 0);
-		if (lexer.curr_token.tokenType == TOKEN_EOF)
-			break;
-	}
-	//assembly_postamble();
+	global_declarations(&lexer);
+	assembly_postamble();
 	//End compilation
 	
 	fclose(outfile);
+	
+	if (1) system("cls");
 	read_output();
 
 	return 0;
