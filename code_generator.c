@@ -334,6 +334,11 @@ int assembly_dereference(int r, PrimitiveType type) {
     return r;
 }
 
+int assembly_shift_left(int r, int val) {
+    fprintf(OutFile, "\tsal  \t%s, %d\n", reglist[r], val);
+    return r;
+}
+
 //genAST
 int assembly_ast_node(struct ASTNode* node, int reg, OperationType parent_type) {
 	
@@ -381,11 +386,21 @@ int assembly_ast_node(struct ASTNode* node, int reg, OperationType parent_type) 
     case NODE_IDENTIFIER: return assembly_load_global(node->value);
     case NODE_LVALUEIDENT: return assembly_store_global(reg, node->value);
     case NODE_ASSIGN: return rightRegister;
-    case NODE_WIDEN: return node->left != NULL ? assembly_widen(leftRegister, node->left->type, node->type) : NULL;
+    case NODE_WIDEN: return assembly_widen(leftRegister, node->left->type, node->type);
     case NODE_RETURN: assembly_return(leftRegister, Functionid); return -1;
     case NODE_FUNCCALL: return assembly_function_call(leftRegister, node->value);
     case NODE_ADDRESS: return assembly_address(node->value);
     case NODE_DEREFERENCE: return assembly_dereference(leftRegister, node->left->type);
+    case NODE_SCALE:
+        switch (node->value)
+        {
+        case 2: return assembly_shift_left(leftRegister, 1);
+        case 4: return assembly_shift_left(leftRegister, 2);
+        case 8: return assembly_shift_left(leftRegister, 3);
+        default:
+            rightRegister = assembly_load_int(node->value, PRIM_INT);
+            return assembly_mul(leftRegister, rightRegister);
+        }
     case NODE_PRINT:
         assembly_printint(leftRegister);
         freeall_registers();

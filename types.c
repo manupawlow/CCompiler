@@ -30,6 +30,53 @@ PrimitiveType value_at(PrimitiveType type) {
 	return newType;
 }
 
+int inttype(int type) {
+	return type == PRIM_CHAR || type == PRIM_INT || type == PRIM_LONG;
+}
+
+int ptrtype(int type) {
+	return type == PRIM_VOIDPTR || type == PRIM_CHARPTR || type == PRIM_INTPTR || type == PRIM_LONGPTR;
+}
+
+struct ASTnode* modify_type(struct ASTNode* tree, PrimitiveType rtype, OperationType op) {
+	PrimitiveType ltype;
+	int lsize, rsize;
+
+	ltype = tree->type;
+
+	if (inttype(ltype) && inttype(rtype)) {
+
+		if (ltype == rtype) return tree;
+
+		lsize = get_type_size(ltype);
+		rsize = get_type_size(rtype);
+
+		if (lsize > rsize) return NULL;
+
+		if (rsize > lsize) return (ast_new_unary(NODE_WIDEN, rtype, tree, 0));
+	}
+
+	if (ptrtype(ltype)) {
+		if (op == 0 && ltype == rtype) return (tree);
+	}
+
+	if (op != NODE_ADD && op != NODE_SUBTRACT) {
+		fprintf(stderr, "Only add and subtract operation on pointer");
+		exit(1);
+	}
+
+	if (op == NODE_ADD || op == NODE_SUBTRACT) {
+
+		if (inttype(ltype) && ptrtype(rtype)) {
+			rsize = get_type_size(value_at(rtype));
+			if (rsize > 1)
+				return (ast_new_unary(NODE_SCALE, rtype, tree, rsize));
+		}
+	}
+
+	return (NULL);
+}
+
 int type_compatible(PrimitiveType* left, PrimitiveType* right, int onlyright) {
 	int leftsize, rightsize;
 

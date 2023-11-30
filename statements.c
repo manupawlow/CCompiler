@@ -73,7 +73,6 @@ struct ASTNode* function_declaration(Lexer* lexer, PrimitiveType type) {
 //statements
 struct ASTNode* return_statement(Lexer* lexer) {
     struct ASTNode* tree;
-    int returntype, functype;
 
     if (GlobalSymbols[Functionid].type == PRIM_VOID) {
         fprintf(stderr, "Can't return from a void function");
@@ -84,18 +83,12 @@ struct ASTNode* return_statement(Lexer* lexer) {
     match(TOKEN_LPAREN, lexer);
 
     tree = binexpr(lexer, 0);
-
-    returntype = tree->type;
-    functype = GlobalSymbols[Functionid].type;
-
-    if (!type_compatible(&returntype, &functype, 1)) {
-        fprintf(stderr, "Incompatible types");
+    tree = modify_type(tree, GlobalSymbols[Functionid].type, 0);
+    if (tree == NULL) {
+        fprintf(stderr, "Incompatible return type");
         exit(1);
     }
-
-    if (returntype)
-        tree = ast_new_unary(returntype, functype, tree, 0);
-
+    
     tree = ast_new_unary(NODE_RETURN, PRIM_NONE, tree, 0);
 
     match(TOKEN_RPAREN, lexer);
@@ -112,16 +105,11 @@ struct ASTNode* print_statement(Lexer* lexer) {
     match(TOKEN_LPAREN, lexer);
 
     tree = binexpr(lexer, 0);
-
-    leftType = PRIM_INT;
-    rightType = tree->type;
-    if (!type_compatible(&leftType, &rightType, 0)) {
-        printf("Incompatible types");
+    tree = modify_type(tree, PRIM_INT, 0);
+    if (tree == NULL) {
+        fprintf(stderr, "Incompatible expression in assignment");
         exit(1);
     }
-
-    if (rightType)
-        tree = ast_new_unary(NODE_WIDEN, PRIM_INT, tree, 0);
 
     tree = ast_new_unary(NODE_PRINT, PRIM_NONE, tree, 0);
 
@@ -132,7 +120,6 @@ struct ASTNode* print_statement(Lexer* lexer) {
 
 struct ASTNode* assignment_statement(Lexer* lexer) {
     struct ASTNode* left, * right, * tree;
-    PrimitiveType leftType, rightType;
     int id;
 
     match(TOKEN_IDENTIFIER, lexer);
@@ -151,16 +138,11 @@ struct ASTNode* assignment_statement(Lexer* lexer) {
     match(TOKEN_ASSING, lexer);
 
     left = binexpr(lexer, 0);
-
-    leftType = left->type;
-    rightType = right->type;
-    if (!type_compatible(&leftType, &rightType, 1)) {
-        printf("Incompatible types");
+    left = modify_type(left, right->type, 0);
+    if (left == NULL) {
+        fprintf(stderr, "Incompatible expression in assignment");
         exit(1);
     }
-
-    if (leftType)
-        left = ast_new_unary(NODE_WIDEN, right->type, left, 0);
 
     tree = ast_new_node(NODE_ASSIGN, PRIM_INT, left, NULL, right, 0);
 

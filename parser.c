@@ -151,7 +151,9 @@ int operator_precedence(TokenType tokenType) {
 //parser_expresion
 struct ASTNode* binexpr(Lexer* lexer, int prev_precedence) {
     _line = &lexer->curr_line;
-    struct ASTNode *left, *right;
+    struct ASTNode* left, * right;
+    struct ASTNode *ltemp, *rtemp;
+    OperationType operation;
 
     left = parse_prefix(lexer);
     
@@ -165,6 +167,18 @@ struct ASTNode* binexpr(Lexer* lexer, int prev_precedence) {
         lexer_next_token(lexer);
 
         right = binexpr(lexer, operator_precedence(tokenType));
+
+        operation = arithmetic_operation(tokenType);
+        ltemp = modify_type(left, right->type, operation);
+        rtemp = modify_type(right, left->type, operation);
+
+        if (ltemp == NULL && rtemp == NULL) {
+            fprintf(stderr, "Incompatible types in binary expression");
+            exit(1);
+        }
+
+        if (ltemp != NULL) left = ltemp;
+        if (rtemp != NULL) right = rtemp;
 
         left = ast_new_node(arithmetic_operation(tokenType), left->type, left, NULL, right, 0);
 
