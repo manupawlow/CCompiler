@@ -11,6 +11,10 @@ void global_declarations(Lexer* lexer) {
 
         if (lexer->curr_token.tokenType == TOKEN_LPAREN) {
             tree = function_declaration(lexer, type);
+            if (O_dumpAST || 1) {
+                dumpAST(tree, 0, 0);
+                fprintf(stdout, "\n\n");
+            }
             assembly_ast_node(tree, -1, 0);
         } else {
             variable_declaration(lexer, type);
@@ -118,6 +122,7 @@ struct ASTNode* print_statement(Lexer* lexer) {
     return tree;
 }
 
+//unused
 struct ASTNode* assignment_statement(Lexer* lexer) {
     struct ASTNode* left, * right, * tree;
     int id;
@@ -236,14 +241,12 @@ struct ASTNode* single_statement(Lexer* lexer) {
         match(TOKEN_IDENTIFIER, lexer);
         variable_declaration(lexer, type);
         return NULL;
-    case TOKEN_IDENTIFIER: return assignment_statement(lexer);
+    //case TOKEN_IDENTIFIER: return assignment_statement(lexer);
     case TOKEN_IF: return if_statement(lexer);
     case TOKEN_WHILE: return while_statement(lexer);
     case TOKEN_FOR: return for_statement(lexer);
     case TOKEN_RETURN: return return_statement(lexer);
-    default:
-        printf("Syntax error");
-        exit(1);
+    default: return binexpr(lexer, 0);
     }
 }
 
@@ -257,7 +260,7 @@ struct ASTNode* compound_statement(Lexer* lexer) {
 
         tree = single_statement(lexer);
 
-        if (tree != NULL && (tree->operation == NODE_PRINT  || tree->operation == NODE_ASSIGN || tree->operation == NODE_RETURN || tree->operation == NODE_FUNCCALL))
+        if (tree != NULL && (tree->operation == NODE_PRINT || tree->operation == NODE_ASSIGN || tree->operation == NODE_RETURN || tree->operation == NODE_FUNCCALL))
             match(TOKEN_SEMICOLON, lexer);
 
         if (tree != NULL) {

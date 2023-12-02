@@ -71,6 +71,7 @@ int main()
 	setOutputFile(outfile);
 
 	//Start compilation
+	O_dumpAST = 1;
 	struct ASTNode* tree;
 	Lexer lexer = lexer_new(infile);
 	lexer_next_token(&lexer);

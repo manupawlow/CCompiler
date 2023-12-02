@@ -327,8 +327,10 @@ int assembly_address(int id) {
 int assembly_dereference(int r, PrimitiveType type) {
     switch (type)
     {
-    case PRIM_CHARPTR:  fprintf(OutFile, "\tmovzx\t%s, byte [%s]\n", reglist[r], reglist[r]); break;
-    case PRIM_INTPTR:   fprintf(OutFile, "\tmovzx\t%s, word [%s]\n", reglist[r], reglist[r]); break;
+    case PRIM_CHARPTR:  
+        fprintf(OutFile, "\tmovzx\t%s, byte [%s]\n", reglist[r], reglist[r]); break;
+    case PRIM_INTPTR:   
+        fprintf(OutFile, "\tmovzx\t%s, word [%s]\n", reglist[r], reglist[r]); break;
     case PRIM_LONGPTR:  fprintf(OutFile, "\tmov  \t%s, [%s]\n", reglist[r], reglist[r]); break;
     }
     return r;
@@ -337,6 +339,26 @@ int assembly_dereference(int r, PrimitiveType type) {
 int assembly_shift_left(int r, int val) {
     fprintf(OutFile, "\tsal  \t%s, %d\n", reglist[r], val);
     return r;
+}
+
+//stores a value through a dereferenced pointer
+int assembly_store_dereference(int r1, int r2, PrimitiveType type) {
+    switch (type)
+    {
+    case PRIM_CHAR:
+        fprintf(OutFile, "\tmov  \t[%s], byte %s\n", reglist[r2], breglist[r1]);
+        break;
+    case PRIM_INT:
+        fprintf(OutFile, "\tmov  \t[%s], %s\n", reglist[r2], reglist[r1]);
+        break;
+    case PRIM_LONG:
+        fprintf(OutFile, "\tmov  \t[%s], %s\n", reglist[r2], reglist[r1]);
+        break;
+    default:
+        fprintf(stderr, "Can't cgstoderef on type");
+        exit(1);
+    }
+    return r1;
 }
 
 //genAST
@@ -361,9 +383,9 @@ int assembly_ast_node(struct ASTNode* node, int reg, OperationType parent_type) 
     int leftRegister = -1, rightRegister = -1;
 
     if (node->left)
-        leftRegister = assembly_ast_node(node->left, -1, 0);
+        leftRegister = assembly_ast_node(node->left, -1, node->operation);
     if (node->right)
-        rightRegister = assembly_ast_node(node->right, leftRegister, 0);
+        rightRegister = assembly_ast_node(node->right, leftRegister, node->operation);
 
     switch (node->operation) {
     case NODE_ADD: return assembly_add(leftRegister, rightRegister);
@@ -383,14 +405,30 @@ int assembly_ast_node(struct ASTNode* node, int reg, OperationType parent_type) 
             return assembly_compare_and_set(node->operation, leftRegister, rightRegister);
     
     case NODE_INTLIT: return assembly_load_int(node->value, node->type);
-    case NODE_IDENTIFIER: return assembly_load_global(node->value);
-    case NODE_LVALUEIDENT: return assembly_store_global(reg, node->value);
-    case NODE_ASSIGN: return rightRegister;
+    case NODE_IDENTIFIER: 
+        if (node->isRvalue || parent_type == NODE_DEREFERENCE)
+            return assembly_load_global(node->value);
+        return -1;
+    //case NODE_LVALUEIDENT: return assembly_store_global(reg, node->value);
+    case NODE_ASSIGN: 
+        switch (node->right->operation)
+        {
+        case NODE_IDENTIFIER: return assembly_store_global(leftRegister, node->right->value);
+        case NODE_DEREFERENCE:  return assembly_store_dereference(leftRegister, rightRegister, node->right->type);
+        default:
+            fprintf(stderr, "Can't A_ASSIGN in genAST()");
+            exit(1);
+        }
+        return rightRegister;
     case NODE_WIDEN: return assembly_widen(leftRegister, node->left->type, node->type);
     case NODE_RETURN: assembly_return(leftRegister, Functionid); return -1;
     case NODE_FUNCCALL: return assembly_function_call(leftRegister, node->value);
     case NODE_ADDRESS: return assembly_address(node->value);
-    case NODE_DEREFERENCE: return assembly_dereference(leftRegister, node->left->type);
+    case NODE_DEREFERENCE: 
+        if (node->isRvalue)
+            return assembly_dereference(leftRegister, node->left->type);
+        else
+            return leftRegister;
     case NODE_SCALE:
         switch (node->value)
         {

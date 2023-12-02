@@ -50,3 +50,104 @@ char* token_to_string(TokenType t) {
 	if (t == TOKEN_RETURN)			 return "TOKEN_RETURN         ";
 	return "????????             ";
 }
+
+static int gendumplabel(void) {
+    static int id = 1;
+    return (id++);
+}
+
+void dumpAST(struct ASTNode* n, int label, int level) {
+    int Lfalse, Lstart, Lend;
+
+
+    switch (n->operation) {
+    case NODE_IF:
+        Lfalse = gendumplabel();
+        for (int i = 0; i < level; i++) fprintf(stdout, " ");
+        fprintf(stdout, "NODE_IF");
+        if (n->right) {
+            Lend = gendumplabel();
+            fprintf(stdout, ", end L%d", Lend);
+        }
+        fprintf(stdout, "\n");
+        dumpAST(n->left, Lfalse, level + 2);
+        dumpAST(n->mid, 0, level + 2);
+        if (n->right) dumpAST(n->right, 0, level + 2);
+        return;
+    case NODE_WHILE:
+        Lstart = gendumplabel();
+        for (int i = 0; i < level; i++) fprintf(stdout, " ");
+        fprintf(stdout, "NODE_WHILE, start L%d\n", Lstart);
+        Lend = gendumplabel();
+        dumpAST(n->left, Lend, level + 2);
+        dumpAST(n->right, 0, level + 2);
+        return;
+    }
+
+    // Reset level to -2 for NODE_GLUE
+    if (n->operation == NODE_GLUE) level = -2;
+
+    // General AST node handling
+    if (n->left) dumpAST(n->left, 0, level + 2);
+    if (n->right) dumpAST(n->right, 0, level + 2);
+
+
+    for (int i = 0; i < level; i++) fprintf(stdout, " ");
+    switch (n->operation) {
+    case NODE_GLUE:
+        fprintf(stdout, "\n\n"); return;
+    case NODE_FUNCTION:
+        fprintf(stdout, "NODE_FUNCTION %s\n", GlobalSymbols[n->value].name); return;
+    case NODE_ADD:
+        fprintf(stdout, "NODE_ADD\n"); return;
+    case NODE_SUBTRACT:
+        fprintf(stdout, "NODE_SUBTRACT\n"); return;
+    case NODE_MULTIPLY:
+        fprintf(stdout, "NODE_MULTIPLY\n"); return;
+    case NODE_DIVIDE:
+        fprintf(stdout, "NODE_DIVIDE\n"); return;
+    case NODE_EQUALS:
+        fprintf(stdout, "NODE_EQ\n"); return;
+    case NODE_NOTEQUALS:
+        fprintf(stdout, "NODE_NE\n"); return;
+    case NODE_LESS:
+        fprintf(stdout, "NODE_LE\n"); return;
+    case NODE_GREATER:
+        fprintf(stdout, "NODE_GT\n"); return;
+    case NODE_LESSOREQUALS:
+        fprintf(stdout, "NODE_LE\n"); return;
+    case NODE_GREATEROREQUALS:
+        fprintf(stdout, "NODE_GE\n"); return;
+    case NODE_INTLIT:
+        fprintf(stdout, "NODE_INTLIT %d\n", n->value); return;
+    case NODE_IDENTIFIER:
+        if (n->isRvalue)
+            fprintf(stdout, "NODE_IDENT rval %s\n", GlobalSymbols[n->value].name);
+        else
+            fprintf(stdout, "NODE_IDENT %s\n", GlobalSymbols[n->value].name);
+        return;
+    case NODE_ASSIGN:
+        fprintf(stdout, "NODE_ASSIGN\n"); return;
+    case NODE_WIDEN:
+        fprintf(stdout, "NODE_WIDEN\n"); return;
+    case NODE_RETURN:
+        fprintf(stdout, "NODE_RETURN\n"); return;
+    case NODE_FUNCCALL:
+        fprintf(stdout, "NODE_FUNCCALL %s\n", GlobalSymbols[n->value].name); return;
+    case NODE_ADDRESS:
+        fprintf(stdout, "NODE_ADDR %s\n", GlobalSymbols[n->value].name); return;
+    case NODE_DEREFERENCE:
+        if (n->isRvalue)
+            fprintf(stdout, "NODE_DEREF rval\n");
+        else
+            fprintf(stdout, "NODE_DEREF\n");
+        return;
+    case NODE_SCALE:
+        fprintf(stdout, "NODE_SCALE %d\n", n->value); return;
+    case NODE_PRINT:
+        fprintf(stdout, "NODE_PRINT %d\n", n->value); return;
+    default:
+        printf("asdasdsa");
+        exit(1);
+    }
+}

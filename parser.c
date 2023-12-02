@@ -24,6 +24,7 @@ struct ASTNode* ast_new_node(OperationType operation, PrimitiveType type, struct
     node->mid = mid;
     node->right = right;
     node->value = value;
+    node->isRvalue = 0;
     return node;
 }
 
@@ -134,11 +135,11 @@ struct ASTNode* parse_primary_factor(Lexer* lexer) {
 }
 
 static int _op_prec[] = { 
-    0,              // TOKEN_EOF
-    10, 10,         // TOKEN_PLUS, TOKEN_MINUS
-    20, 20,         // TOKEN_STAR, TOKEN_SLASH
-    30, 30,         // TOKEN_EQUALS, TOKEN_NOTE
-    40, 40, 40, 40, // TOKEN_LESS, TOKEN_GREATER, TOKEN_LESSOREQUALS, TOKEN_GREATEROREQUALS
+    0,  10,          // TOKEN_EOF, TOKEN_ASSING
+    20, 20,         // TOKEN_PLUS, TOKEN_MINUS
+    30, 30,         // TOKEN_STAR, TOKEN_SLASH
+    40, 40,         // TOKEN_EQUALS, TOKEN_NOTE
+    50, 50, 50, 50, // TOKEN_LESS, TOKEN_GREATER, TOKEN_LESSOREQUALS, TOKEN_GREATEROREQUALS
 };
 int operator_precedence(TokenType tokenType) {
     int prec = _op_prec[tokenType];
@@ -148,47 +149,73 @@ int operator_precedence(TokenType tokenType) {
     return prec;
 }
 
+int rightassoc(TokenType tokenType) {
+    return tokenType == TOKEN_ASSING;
+}
+
 //parser_expresion
 struct ASTNode* binexpr(Lexer* lexer, int prev_precedence) {
     _line = &lexer->curr_line;
     struct ASTNode* left, * right;
     struct ASTNode *ltemp, *rtemp;
     OperationType operation;
+    TokenType tokenType;
 
     left = parse_prefix(lexer);
     
-    TokenType tokenType = lexer->curr_token.tokenType;
+    tokenType = lexer->curr_token.tokenType;
     if (tokenType == TOKEN_SEMICOLON || tokenType == TOKEN_RPAREN) {
+        left->isRvalue = 1;
         return left;
     }
     
-    while (operator_precedence(tokenType) > prev_precedence) {
+    while (operator_precedence(tokenType) > prev_precedence
+        || (rightassoc(tokenType) && operator_precedence(tokenType) == prev_precedence)) {
         
         lexer_next_token(lexer);
 
         right = binexpr(lexer, operator_precedence(tokenType));
 
         operation = arithmetic_operation(tokenType);
-        ltemp = modify_type(left, right->type, operation);
-        rtemp = modify_type(right, left->type, operation);
 
-        if (ltemp == NULL && rtemp == NULL) {
-            fprintf(stderr, "Incompatible types in binary expression");
-            exit(1);
+        if (operation == NODE_ASSIGN) {
+            right->isRvalue = 1;
+            right = modify_type(right, left->type, 0);
+            if (left == NULL) {
+                fprintf(stderr, "Incompatible expression in assignment");
+                exit(1);
+            }
+            ltemp = left;
+            left = right;
+            right = ltemp;
         }
+        else {
+            left->isRvalue = 1;
+            right->isRvalue = 1;
 
-        if (ltemp != NULL) left = ltemp;
-        if (rtemp != NULL) right = rtemp;
+            ltemp = modify_type(left, right->type, operation);
+            rtemp = modify_type(right, left->type, operation);
+
+            if (ltemp == NULL && rtemp == NULL) {
+                fprintf(stderr, "Incompatible types in binary expression");
+                exit(1);
+            }
+
+            if (ltemp != NULL) left = ltemp;
+            if (rtemp != NULL) right = rtemp;
+        }
 
         left = ast_new_node(arithmetic_operation(tokenType), left->type, left, NULL, right, 0);
 
         tokenType = lexer->curr_token.tokenType;
 
         if (tokenType == TOKEN_SEMICOLON || tokenType == TOKEN_RPAREN) {
+            left->isRvalue = 1;
             return left;
         }
     }
 
+    left->isRvalue = 1;
     return left;
 }
 
