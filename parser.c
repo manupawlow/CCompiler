@@ -63,6 +63,40 @@ struct ASTNode* parse_funccall(Lexer* lexer) {
     return tree;
 }
 
+struct ASTNode* array_access(Lexer* lexer) {
+    struct ASTNode* left, *right;
+    int id;
+
+    if ((id = findGlobal(Text)) == -1) {
+        fprintf(stderr, "Undeclared array %s", Text);
+        exit(1);
+    }
+
+    if (GlobalSymbols[id].stype != STRU_ARRAY) {
+        fprintf(stderr, "Identifier %s is not an array", Text);
+        exit(1);
+    }
+    left = ast_new_leaf(NODE_ADDRESS, GlobalSymbols[id].type, id);
+    
+    lexer_next_token(lexer);
+
+    right = binexpr(lexer, 0);
+
+    match(TOKEN_RBRACKET, lexer);
+
+    if (!inttype(right->type)) {
+        fprintf(stderr, "Array index is not of integer type");
+        exit(1);
+    }
+
+    right = modify_type(right, left->type, NODE_ADD);
+
+    left = ast_new_node(NODE_ADD, GlobalSymbols[id].type, left, NULL, right, 0);
+    left = ast_new_unary(NODE_DEREFERENCE, value_at(left->type), left, 0);
+ 
+    return left;
+}
+
 struct ASTNode* parse_prefix(Lexer* lexer) {
     struct ASTNode* tree;
     switch (lexer->curr_token.tokenType)
@@ -97,6 +131,7 @@ struct ASTNode* parse_prefix(Lexer* lexer) {
     return tree;
 }
 
+//primary expresion
 struct ASTNode* parse_primary_factor(Lexer* lexer) {
     struct ASTNode* n;
     int id;
@@ -116,6 +151,11 @@ struct ASTNode* parse_primary_factor(Lexer* lexer) {
         if (lexer->curr_token.tokenType == TOKEN_LPAREN) {
             return parse_funccall(lexer);
         }
+
+        if (lexer->curr_token.tokenType == TOKEN_LBRACKET) {
+            return array_access(lexer);
+        }
+
         lexer_reject_token(&lexer->curr_token, lexer);
 
         id = findGlobal(Text);
@@ -125,6 +165,11 @@ struct ASTNode* parse_primary_factor(Lexer* lexer) {
         }
         n = ast_new_leaf(NODE_IDENTIFIER, GlobalSymbols[id].type, id);
         break;
+    case TOKEN_LPAREN:
+        lexer_next_token(lexer);
+        n = binexpr(lexer, 0);
+        match(TOKEN_RPAREN, lexer);
+        return n;
     default:
         fprintf(stderr, "Syntax error, token %s", Text);
         exit(1);
@@ -142,7 +187,13 @@ static int _op_prec[] = {
     50, 50, 50, 50, // TOKEN_LESS, TOKEN_GREATER, TOKEN_LESSOREQUALS, TOKEN_GREATEROREQUALS
 };
 int operator_precedence(TokenType tokenType) {
+    if (tokenType >= TOKEN_VOID) {
+        fprintf(stderr, "Token with no precedence in op_precedence: %s", tokenType);
+        exit(1);
+    }
+
     int prec = _op_prec[tokenType];
+
     if (prec == 0) {
         syntax_error();
     }
@@ -164,7 +215,7 @@ struct ASTNode* binexpr(Lexer* lexer, int prev_precedence) {
     left = parse_prefix(lexer);
     
     tokenType = lexer->curr_token.tokenType;
-    if (tokenType == TOKEN_SEMICOLON || tokenType == TOKEN_RPAREN) {
+    if (tokenType == TOKEN_SEMICOLON || tokenType == TOKEN_RPAREN || tokenType == TOKEN_RBRACKET) {
         left->isRvalue = 1;
         return left;
     }

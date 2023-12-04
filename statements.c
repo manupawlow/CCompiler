@@ -27,24 +27,37 @@ void global_declarations(Lexer* lexer) {
 void variable_declaration(Lexer* lexer, PrimitiveType type) {
     int id;
 
-    while (1) {
-        id = addGlobal(Text, type, STRU_VARIABLE, 0);
-        assembly_generate_global_symbol(id);
+    if (lexer->curr_token.tokenType == TOKEN_LBRACKET) {
+        lexer_next_token(lexer);
 
-        if (lexer->curr_token.tokenType == TOKEN_SEMICOLON) {
-            lexer_next_token(lexer);
-            return;
+        if (lexer->curr_token.tokenType == TOKEN_INTLIT) {
+            id = addGlobal(Text, pointer_to(type), STRU_ARRAY, 0, lexer->curr_token.value);
+            assembly_generate_global_symbol(id);
         }
-
-        if (lexer->curr_token.tokenType == TOKEN_COMMA) {
-            lexer_next_token(lexer);
-            match(TOKEN_IDENTIFIER, lexer);
-            continue;
-        }
-
-        fprintf(stderr, "Missing , or ; after identifier");
-        exit(1);
+        lexer_next_token(lexer);
+        match(TOKEN_RBRACKET, lexer);
     }
+    else {
+        while (1) {
+            id = addGlobal(Text, type, STRU_VARIABLE, 0, 1);
+            assembly_generate_global_symbol(id);
+
+            if (lexer->curr_token.tokenType == TOKEN_SEMICOLON) {
+                lexer_next_token(lexer);
+                return;
+            }
+
+            if (lexer->curr_token.tokenType == TOKEN_COMMA) {
+                lexer_next_token(lexer);
+                match(TOKEN_IDENTIFIER, lexer);
+                continue;
+            }
+
+            fprintf(stderr, "Missing , or ; after identifier");
+            exit(1);
+        }
+    }
+    match(TOKEN_SEMICOLON, lexer);
 }
 
 struct ASTNode* function_declaration(Lexer* lexer, PrimitiveType type) {
@@ -55,7 +68,7 @@ struct ASTNode* function_declaration(Lexer* lexer, PrimitiveType type) {
     //match(TOKEN_IDENTIFIER, lexer);
 
     endlabel = label_id();
-    nameslot = addGlobal(Text, type, STRU_FUNCTION, endlabel);
+    nameslot = addGlobal(Text, type, STRU_FUNCTION, endlabel, 1);
     Functionid = nameslot;
 
     match(TOKEN_LPAREN, lexer);

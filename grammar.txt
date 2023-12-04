@@ -22,7 +22,9 @@ global_declarations: global_declaration | global_declaration global_declarations
 
 global_declaration: function_declaration | variable_declaration
 
-variable_declaration: type identifier_list ';'
+ variable_declaration 
+    : type identifier ';'
+    | type identifier '[' P_INTLIT ']' ';'
 
 function_declaration: type IDENTIFIER '(' ')' compound_statement
 
@@ -64,6 +66,16 @@ multiplicative_expression:
       NUMBER
     | NUMBER '*' multiplicative_expression
     | NUMBER '/' multiplicative_expression
+
+primary_expression
+        : IDENTIFIER
+        | CONSTANT
+        | STRING_LITERAL
+        | '(' expression ')'
+
+postfix_expression
+        : primary_expression
+        | postfix_expression '[' expression ']'
 
 NUMBER:     TOKEN_INT
 IDENTIFIER: TOKEN_IDENTIFIER

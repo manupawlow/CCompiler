@@ -6,6 +6,6 @@
 
 int findGlobal(char* s);
 int nextGlobalSlot();
-int addGlobal(char* name, PrimitiveType type, StructuralType stype, int endlabel);
+int addGlobal(char* name, PrimitiveType type, StructuralType stype, int endlabel, int size);
 
 #endif // SYMBOLS_H_

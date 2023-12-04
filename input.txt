@@ -1,10 +1,14 @@
-int   c;
-int   d;
-int  *e;
-int   f;
+
 
 int main() {
-  c= 12; d=18; printint(c);
-  e= &c + 1; f= *e; printint(f);
+	int a;
+  int b[20];
+
+   b[3]= 12; a= b[3];
+
+   printint(b[3]);
+   printint(b[4]);
+   printint(a);
+
   return(0);
 }

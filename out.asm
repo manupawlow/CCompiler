@@ -4,40 +4,50 @@ section .data
 	_format db '%d', 0xA
 
 section .bss
-	c: resb 4
+	a: resb 4
 section .bss
-	d: resb 4
-section .bss
-	e: resb 8
-section .bss
-	f: resb 4
+	b: resb 8
 section	.text
 global	main
 main:
 	push 	rbp
 	mov  	rbp, rsp
 	mov  	r8, 12		; r8 = 12
-	mov  	[c], r8d
-	mov  	r8, 18		; r8 = 18
-	mov  	[d], r8d
-	xor  	r8, r8
-	mov  	r8d, dword [c]
+	lea  	r9, [b]
+	mov  	r10, 3		; r10 = 3
+	sal  	r10, 2
+	add  	r10, r9		; r10 = r10 + r9
+	mov  	[r10], r8
+	lea  	r8, [b]
+	mov  	r9, 3		; r9 = 3
+	sal  	r9, 2
+	add  	r9, r8		; r9 = r9 + r8
+	movzx	r9, word [r9]
+	mov  	[a], r9d
+	lea  	r8, [b]
+	mov  	r9, 3		; r9 = 3
+	sal  	r9, 2
+	add  	r9, r8		; r9 = r9 + r8
+	movzx	r9, word [r9]
 
-	mov  	rdi, _format	; printf r8
-	mov  	rsi, r8
+	mov  	rdi, _format	; printf r9
+	mov  	rsi, r9
 	mov  	al, 0
 	call 	printf
 
-	lea  	r8, [c]
-	mov  	r9, 1		; r9 = 1
+	lea  	r8, [b]
+	mov  	r9, 4		; r9 = 4
 	sal  	r9, 2
 	add  	r9, r8		; r9 = r9 + r8
-	mov  	[e], r9
-	mov  	r8, [e]
-	movzx	r8, word [r8]
-	mov  	[f], r8d
+	movzx	r9, word [r9]
+
+	mov  	rdi, _format	; printf r9
+	mov  	rsi, r9
+	mov  	al, 0
+	call 	printf
+
 	xor  	r8, r8
-	mov  	r8d, dword [f]
+	mov  	r8d, dword [a]
 
 	mov  	rdi, _format	; printf r8
 	mov  	rsi, r8

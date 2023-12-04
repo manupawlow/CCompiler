@@ -17,7 +17,7 @@ int nextGlobalSlot() {
     return p;
 }
 
-int addGlobal(char* name, PrimitiveType type, StructuralType stype, int endlabel) {
+int addGlobal(char* name, PrimitiveType type, StructuralType stype, int endlabel, int size) {
     int y;
 
     if ((y = findGlobal(name)) != -1)
@@ -28,5 +28,6 @@ int addGlobal(char* name, PrimitiveType type, StructuralType stype, int endlabel
     GlobalSymbols[y].type = type;
     GlobalSymbols[y].stype = stype;
     GlobalSymbols[y].endlabel = endlabel;
+    GlobalSymbols[y].size = size;
     return y;
 }

@@ -23,7 +23,7 @@ typedef enum {
 	TOKEN_LESS, TOKEN_GREATER, TOKEN_LESSOREQUALS, TOKEN_GREATEROREQUALS,
 	
 	TOKEN_SEMICOLON, TOKEN_INTLIT, TOKEN_IDENTIFIER,
-	TOKEN_LPAREN, TOKEN_RPAREN, TOKEN_LBRACE, TOKEN_RBRACE,
+	TOKEN_LPAREN, TOKEN_RPAREN, TOKEN_LBRACKET, TOKEN_RBRACKET, TOKEN_LBRACE, TOKEN_RBRACE,
 	TOKEN_AMPERSAND,
 	TOKEN_AND,
 
@@ -99,6 +99,7 @@ struct ASTNode {
 typedef enum {
 	STRU_VARIABLE,
 	STRU_FUNCTION,
+	STRU_ARRAY,
 } StructuralType;
 
 typedef struct {
@@ -106,6 +107,7 @@ typedef struct {
 	PrimitiveType type;
 	StructuralType stype;
 	int endlabel;
+	int size;
 } Symbol;
 
 Symbol GlobalSymbols[NSYMBOLS];

@@ -163,6 +163,7 @@ int get_type_size(PrimitiveType type) {
 
 void assembly_generate_global_symbol(int id) {
     Symbol sym = GlobalSymbols[id];
+    int size = get_type_size(sym.type);
     fprintf(OutFile, "section .bss\n");
     fprintf(OutFile, "\t%s: resb %d\n", sym.name, get_type_size(sym.type));
 }

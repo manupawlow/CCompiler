@@ -136,6 +136,8 @@ int lexer_next_token(Lexer* lexer) {
 	case ';': t.tokenType = TOKEN_SEMICOLON; break;
 	case '(': t.tokenType = TOKEN_LPAREN; break;
 	case ')': t.tokenType = TOKEN_RPAREN; break;
+	case '[': t.tokenType = TOKEN_LBRACKET; break;
+	case ']': t.tokenType = TOKEN_RBRACKET; break;
 	case '{': t.tokenType = TOKEN_LBRACE; break;
 	case '}': t.tokenType = TOKEN_RBRACE; break;
 	case ',': t.tokenType = TOKEN_COMMA; break;
