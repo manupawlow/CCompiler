@@ -14,6 +14,29 @@ int is_white_space(char c) {
 	return ' ' == c || '\t' == c || '\n' == c || '\r' == c || '\f' == c;
 }
 
+int scanch(Lexer* lexer) {
+	int c;
+	c = next_char(lexer);
+	if (c == '\\') {
+		switch (c = next_char(lexer)) {
+		case 'a':  return '\a';
+		case 'b':  return '\b';
+		case 'f':  return '\f';
+		case 'n':  return '\n';
+		case 'r':  return '\r';
+		case 't':  return '\t';
+		case 'v':  return '\v';
+		case '\\': return '\\';
+		case '"':  return '"';
+		case '\'': return '\'';
+		default:
+			fprintf(stderr, "Unknown escape sequence");
+			exit(1);
+		}
+	}
+	return (c);
+}
+
 int next_char(Lexer* lexer) {
 	int c = fgetc(lexer->source);
 	if ('\n' == c) {
@@ -47,6 +70,20 @@ int scan_int(Lexer* lexer) {
 	}
 	ungetc(c, lexer->source);
 	return int_value;
+}
+
+void scan_string(Lexer* lexer, char* buffer) {
+	int i, c;
+	for (i = 0; i < MAX_TEXT_LEN - 1; i++) {
+		if ((c = scanch(lexer)) == '"') {
+			buffer[i] = '\0';
+			return 0;
+		}
+		buffer[i] = c;
+	}
+
+	fprintf(stderr, "String literal too long");
+	exit(1);
 }
 
 char* scan_identifier(Lexer* lexer, char* buffer) {
@@ -91,6 +128,7 @@ PrimitiveType parse_type(Lexer* lexer) {
 
 int keyword_token(char* s) {
 	if (strcmp(s, "printint") == 0) return TOKEN_PRINT;
+	if (strcmp(s, "printchar") == 0) return TOKEN_PRINT2;
 	if (strcmp(s, "if") == 0) return TOKEN_IF;
 	if (strcmp(s, "else") == 0) return TOKEN_ELSE;
 	if (strcmp(s, "while") == 0) return TOKEN_WHILE;
@@ -129,8 +167,24 @@ int lexer_next_token(Lexer* lexer) {
 	switch (c)
 	{
 	case EOF: t.tokenType = TOKEN_EOF; break;
-	case '+': t.tokenType = TOKEN_PLUS; break;
-	case '-': t.tokenType = TOKEN_MINUS; break;
+	case '+': 
+		if ((c = next_char(lexer)) == '+') {
+			t.tokenType = TOKEN_INCREMENT;
+		}
+		else {
+			ungetc(c, lexer->source);
+			t.tokenType = TOKEN_PLUS;
+		}
+		break;
+	case '-': 
+		if ((c = next_char(lexer)) == '-') {
+			t.tokenType = TOKEN_DECREMENT;
+		}
+		else {
+			ungetc(c, lexer->source);
+			t.tokenType = TOKEN_MINUS;
+		}
+		break;
 	case '*': t.tokenType = TOKEN_STAR; break;
 	case '/': t.tokenType = TOKEN_SLASH; break;
 	case ';': t.tokenType = TOKEN_SEMICOLON; break;
@@ -141,6 +195,20 @@ int lexer_next_token(Lexer* lexer) {
 	case '{': t.tokenType = TOKEN_LBRACE; break;
 	case '}': t.tokenType = TOKEN_RBRACE; break;
 	case ',': t.tokenType = TOKEN_COMMA; break;
+	case '~': t.tokenType = TOKEN_INVERT; break;
+	case '^': t.tokenType = TOKEN_XOR; break;
+	case '\'': 
+		t.value = scanch(lexer);
+		t.tokenType = TOKEN_INTLIT;
+		if ((c = next_char(lexer)) != '\'') {
+			fprintf(stderr, "Expected '\\'' at end of char literal");
+			exit(1);
+		}
+		break;
+	case '\"':
+		scan_string(lexer, &Text);
+		t.tokenType = TOKEN_STRINGLIT;
+		break;
 	case '=':
 		if ((c = next_char(lexer)) == '=') {
 			t.tokenType = TOKEN_EQUALS;
@@ -152,18 +220,20 @@ int lexer_next_token(Lexer* lexer) {
 		break;
 	case '!':
 		if ((c = next_char(lexer)) == '=') {
-			t.tokenType = TOKEN_NOTEQUALS;
+			t.tokenType = TOKEN_NEGATE;
 		}
 		else {
-			fprintf(stderr, "[LEXER] Unrecognised character on line %d\n", lexer->curr_line);
-			exit(1);
+			ungetc(c, lexer->source);
+			t.tokenType = TOKEN_LOGNOT;
 		}
 		break;
 	case '<':
 		if ((c = next_char(lexer)) == '=') {
 			t.tokenType = TOKEN_LESSOREQUALS;
 		}
-		else {
+		else if (c == '<') {
+			t.tokenType = TOKEN_LSHIFT;
+		} else {
 			ungetc(c, lexer->source);
 			t.tokenType = TOKEN_LESS;
 		}
@@ -172,6 +242,9 @@ int lexer_next_token(Lexer* lexer) {
 		if ((c = next_char(lexer)) == '=') {
 			t.tokenType = TOKEN_GREATEROREQUALS;
 		}
+		else if (c == '>') {
+			t.tokenType = TOKEN_RSHIFT;
+		}
 		else {
 			ungetc(c, lexer->source);
 			t.tokenType = TOKEN_GREATER;
@@ -179,10 +252,19 @@ int lexer_next_token(Lexer* lexer) {
 		break;
 	case '&':
 		if ((c = next_char(lexer)) == '&') {
-			t.tokenType = TOKEN_AND;
+			t.tokenType = TOKEN_LOGAND;
 		} else {
 			ungetc(c, lexer->source);
 			t.tokenType = TOKEN_AMPERSAND;
+		}
+		break;
+	case '|':
+		if ((c = next_char(lexer)) == '|') {
+			t.tokenType = TOKEN_LOGOR;
+		}
+		else {
+			ungetc(c, lexer->source);
+			t.tokenType = TOKEN_OR;
 		}
 		break;
 	default:

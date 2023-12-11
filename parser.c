@@ -124,11 +124,85 @@ struct ASTNode* parse_prefix(Lexer* lexer) {
 
         tree = ast_new_unary(NODE_DEREFERENCE, value_at(tree->type), tree, 0);
         break;
+    case TOKEN_MINUS:
+        lexer_next_token(lexer);
+        tree = parse_prefix(lexer);
+        tree->isRvalue = 1;
+        tree = modify_type(tree, PRIM_INT, 0);
+        tree = ast_new_unary(NODE_NEGATE, tree->type, tree, 0);
+        break;
+    case TOKEN_INVERT:
+        lexer_next_token(lexer);
+        tree = parse_prefix(lexer);
+        tree->isRvalue = 1;
+        tree = ast_new_unary(NODE_INVERT, tree->type, tree, 0);
+        break;
+    case TOKEN_LOGNOT:
+        lexer_next_token(lexer);
+        tree = parse_prefix(lexer);
+        tree->isRvalue = 1;
+        tree = ast_new_unary(NODE_LOGNOT, tree->type, tree, 0);
+        break;
+    case TOKEN_INCREMENT:
+        lexer_next_token(lexer);
+        tree = parse_prefix(lexer);
+        if (tree->operation != NODE_IDENTIFIER) {
+            fprintf(stderr, "++ operator must be followed by an identifier");
+            exit(1);
+        }
+        tree = ast_new_unary(NODE_PREINC, tree->type, tree, 0);
+        break;
+    case TOKEN_DECREMENT:
+        lexer_next_token(lexer);
+        tree = parse_prefix(lexer);
+        if (tree->operation != NODE_IDENTIFIER) {
+            fprintf(stderr, "-- operator must be followed by an identifier");
+            exit(1);
+        }
+        tree = ast_new_unary(NODE_PREDEC, tree->type, tree, 0);
+        break;
     default:
         tree = parse_primary_factor(lexer);
         break;
     }
     return tree;
+}
+
+struct ASTNode* parse_postfix(Lexer* lexer) {
+    struct ASTNode* n;
+    int id;
+    
+    lexer_next_token(lexer);
+
+    if (lexer->curr_token.tokenType == TOKEN_LPAREN) {
+        return parse_funccall(lexer);
+    }
+
+    if (lexer->curr_token.tokenType == TOKEN_LBRACKET) {
+        return array_access(lexer);
+    }
+
+    id = findGlobal(Text);
+    if (id == -1 || GlobalSymbols[id].stype != STRU_VARIABLE) {
+        fprintf(stderr, ERROR, Text);
+        exit(1);
+    }
+
+    switch (lexer->curr_token.tokenType)
+    {
+    case TOKEN_INCREMENT:
+        lexer_next_token(lexer);
+        n = ast_new_leaf(NODE_POSTINC, GlobalSymbols[id].type, id);
+        break;
+    case TOKEN_DECREMENT:
+        lexer_next_token(lexer);
+        n = ast_new_leaf(NODE_POSTDEC, GlobalSymbols[id].type, id);
+        break;
+    default:
+        n = ast_new_leaf(NODE_IDENTIFIER, GlobalSymbols[id].type, id);
+        break;
+    }
+    return n;
 }
 
 //primary expresion
@@ -145,31 +219,12 @@ struct ASTNode* parse_primary_factor(Lexer* lexer) {
         else 
             n = ast_new_leaf(NODE_INTLIT, PRIM_INT, lexer->curr_token.value);
         break;
-    case TOKEN_IDENTIFIER:
-
-        lexer_next_token(lexer);
-        if (lexer->curr_token.tokenType == TOKEN_LPAREN) {
-            return parse_funccall(lexer);
-        }
-
-        if (lexer->curr_token.tokenType == TOKEN_LBRACKET) {
-            return array_access(lexer);
-        }
-
-        lexer_reject_token(&lexer->curr_token, lexer);
-
-        id = findGlobal(Text);
-        if (id == -1) {
-            fprintf(stderr, ERROR, Text);
-            exit(1);
-        }
-        n = ast_new_leaf(NODE_IDENTIFIER, GlobalSymbols[id].type, id);
+    case TOKEN_STRINGLIT:
+        id = assembly_generate_global_string(Text);
+        n = ast_new_leaf(NODE_STRINGLIT, PRIM_CHARPTR, id);
         break;
-    case TOKEN_LPAREN:
-        lexer_next_token(lexer);
-        n = binexpr(lexer, 0);
-        match(TOKEN_RPAREN, lexer);
-        return n;
+    case TOKEN_IDENTIFIER:
+        return parse_postfix(lexer);
     default:
         fprintf(stderr, "Syntax error, token %s", Text);
         exit(1);
@@ -179,20 +234,22 @@ struct ASTNode* parse_primary_factor(Lexer* lexer) {
     return n;
 }
 
-static int _op_prec[] = { 
-    0,  10,          // TOKEN_EOF, TOKEN_ASSING
-    20, 20,         // TOKEN_PLUS, TOKEN_MINUS
-    30, 30,         // TOKEN_STAR, TOKEN_SLASH
-    40, 40,         // TOKEN_EQUALS, TOKEN_NOTE
-    50, 50, 50, 50, // TOKEN_LESS, TOKEN_GREATER, TOKEN_LESSOREQUALS, TOKEN_GREATEROREQUALS
+static int _op_prec[] = {
+    0, 10, 20, 30,                // T_EOF, T_ASSIGN, T_LOGOR, T_LOGAND
+    40, 50, 60,                   // T_OR, T_XOR, T_AMPER 
+    70, 70,                       // T_EQ, T_NE
+    80, 80, 80, 80,               // T_LT, T_GT, T_LE, T_GE
+    90, 90,                       // T_LSHIFT, T_RSHIFT
+    100, 100,                     // T_PLUS, T_MINUS
+    110, 110                      // T_STAR, T_SLASH
 };
 int operator_precedence(TokenType tokenType) {
     if (tokenType >= TOKEN_VOID) {
-        fprintf(stderr, "Token with no precedence in op_precedence: %s", tokenType);
+        fprintf(stderr, "Token with no precedence in op_precedence: %d", (int)tokenType);
         exit(1);
     }
 
-    int prec = _op_prec[tokenType];
+    int prec = _op_prec[(int)tokenType];
 
     if (prec == 0) {
         syntax_error();

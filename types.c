@@ -71,10 +71,10 @@ struct ASTnode* modify_type(struct ASTNode* tree, PrimitiveType rtype, Operation
 			rsize = get_type_size(value_at(rtype));
 			if (rsize > 1)
 				return (ast_new_unary(NODE_SCALE, rtype, tree, rsize));
+			else
+				return tree;
 		}
 	}
-
-	return (NULL);
 }
 
 int type_compatible(PrimitiveType* left, PrimitiveType* right, int onlyright) {

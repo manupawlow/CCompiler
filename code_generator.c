@@ -42,7 +42,8 @@ void assembly_preamble()
         "extern printf\n"
         "\n"
         "section .data\n"
-        "\t_format db '%d', 0xA\n"
+        "\t_format db '%d', 0xA, 0\n"
+        "\t_format2 db '%c', 0\n"
         "\n",
         OutFile);
 }
@@ -84,6 +85,16 @@ int assembly_div(int r1, int r2) {
     return(r1);
 }
 
+void assembly_printchar(int r) {
+    fprintf(OutFile, "\n");
+    fprintf(OutFile, "\tmov  \trdi, _format2\t; printf2 %s\n", reglist[r]);
+    fprintf(OutFile, "\tmov  \trsi, %s\n", reglist[r]);
+    fprintf(OutFile, "\tmov  \tal, 0\n");
+    fprintf(OutFile, "\tcall \tprintf\n");
+    fprintf(OutFile, "\n");
+    free_register(r);
+}
+
 void assembly_printint(int r) {
     fprintf(OutFile, "\n");
     fprintf(OutFile, "\tmov  \trdi, _format\t; printf %s\n", reglist[r]);
@@ -94,23 +105,36 @@ void assembly_printint(int r) {
     free_register(r);
 }
 
-int assembly_load_global(int id) {
+int assembly_load_global(int id, OperationType op) {
     int r = alloc_register();
     Symbol sym = GlobalSymbols[id];
     switch (sym.type)
     {
     case PRIM_CHAR: 
+        if (op == NODE_PREINC) fprintf(OutFile, "\tinc  \tbyte [%s]\n", sym.name);
+        if (op == NODE_PREDEC) fprintf(OutFile, "\tdec  \tbyte [%s]\n", sym.name);
         fprintf(OutFile, "\tmovzx\t%s, byte [%s]\n", reglist[r], sym.name); 
+        if (op == NODE_POSTINC) fprintf(OutFile, "\tinc  \tbyte [%s]\n", sym.name);
+        if (op == NODE_POSTDEC) fprintf(OutFile, "\tdec  \tbyte [%s]\n", sym.name);
+
         break;
     case PRIM_INT:  
+        if (op == NODE_PREINC) fprintf(OutFile, "\tinc  \tdword [%s]\n", sym.name);
+        if (op == NODE_PREDEC) fprintf(OutFile, "\tdec  \tdword [%s]\n", sym.name);
         fprintf(OutFile, "\txor  \t%s, %s\n", reglist[r], reglist[r]);
         fprintf(OutFile, "\tmov  \t%s, dword [%s]\n", dreglist[r], sym.name);
+        if (op == NODE_POSTINC) fprintf(OutFile, "\tinc  \tdword [%s]\n", sym.name);
+        if (op == NODE_POSTDEC) fprintf(OutFile, "\tdec  \tdword [%s]\n", sym.name);
         break;
     case PRIM_LONG:
     case PRIM_CHARPTR:
     case PRIM_INTPTR:
     case PRIM_LONGPTR:
+        if (op == NODE_PREINC) fprintf(OutFile, "\tinc  \tqword [%s]\n", sym.name);
+        if (op == NODE_PREDEC) fprintf(OutFile, "\tdec  \tqword [%s]\n", sym.name);
         fprintf(OutFile, "\tmov  \t%s, [%s]\n", reglist[r], sym.name);
+        if (op == NODE_POSTINC) fprintf(OutFile, "\tinc  \tqword [%s]\n", sym.name);
+        if (op == NODE_POSTDEC) fprintf(OutFile, "\tdec  \tqword [%s]\n", sym.name);
         break;
     default:
         fprintf(stderr, "Bad type in assembly_load_global()");
@@ -165,7 +189,7 @@ void assembly_generate_global_symbol(int id) {
     Symbol sym = GlobalSymbols[id];
     int size = get_type_size(sym.type);
     fprintf(OutFile, "section .bss\n");
-    fprintf(OutFile, "\t%s: resb %d\n", sym.name, get_type_size(sym.type));
+    fprintf(OutFile, "\t%s: resb %d\n\n", sym.name, get_type_size(sym.type));
 }
 
 //int assembly_compare(int r1, int r2, char* compare_operator, char* symbol) {
@@ -227,8 +251,8 @@ int assembly_compare_and_set(OperationType parent_type, int r1, int r2) {
     }
     int index = parent_type - NODE_EQUALS;
     fprintf(OutFile, "\tcmp\t%s, %s\t\t; %s %s %s\n", reglist[r1], reglist[r2], reglist[r1], cmpsymbols[index], reglist[r2]);
-    fprintf(OutFile, "\t%s\t%s\n", cmplist[index], reglist[r2]);
-    fprintf(OutFile, "\tmovzb\t%s, %s\n", reglist[r2], breglist[r2]);
+    fprintf(OutFile, "\t%s\t%s\n", cmplist[index], breglist[r2]);
+    fprintf(OutFile, "\tmovzx\t%s, %s\n", reglist[r2], breglist[r2]);
     free_register(r1);
     return r2;
 }
@@ -274,10 +298,11 @@ void assembly_funcpreamble(int id) {
         "global\t%s\n"
         "%s:\n" 
         "\tpush \trbp\n"
-        "\tmov  \trbp, rsp\n", name, name);
+        "\tmov  \trbp, rsp\n\n", name, name);
 }
 
 void assembly_funcpostamble(int id) {
+    fputs("\n", OutFile);
     assembly_label(GlobalSymbols[id].endlabel);
     fputs(
         "\tpop  \trbp\n" 
@@ -362,8 +387,104 @@ int assembly_store_dereference(int r1, int r2, PrimitiveType type) {
     return r1;
 }
 
+void assembly_global_string(int l, char* text) {
+    char* cptr;
+    assembly_label(l);
+    for (int i = 0; text[i] != '\0'; ++i) {
+        fprintf(OutFile, "\tdb   \t%d\n", text[i]);
+    }
+    fprintf(OutFile, "\tdb    \t0\n");
+}
+
+int assembly_generate_global_string(char* text) {
+    //int l = label_id();
+    //assembly_global_string(l, text);
+    int l = label_id();
+    fprintf(OutFile, "section .data\n");
+    //fprintf(OutFile, "\tLC%d db '%s', 0\n\n", l, text);
+    fprintf(OutFile, "\tLC%d db ", l);
+    char* cptr;
+    for (cptr = text; *cptr; cptr++) {
+        if (*cptr == '\n')
+            fprintf(OutFile, "0xA, ");
+        else 
+            fprintf(OutFile, "'%c', ", *cptr);
+    }
+    fprintf(OutFile, "0\n");
+
+    return l;
+}
+
+int assembly_load_global_string(int id) {
+    int r = alloc_register();
+    //fprintf(OutFile, "\tmov  \t%s, L%d\n", reglist[r], id);
+    fprintf(OutFile, "\tmov  \t%s, LC%d\n", reglist[r], id);
+    return r;
+}
+
+int assembly_and(int r1, int r2) {
+    fprintf(OutFile, "\tand  \t%s, %s\n", reglist[r2], reglist[r1]);
+    free_register(r1);
+    return r2;
+}
+
+int assembly_or(int r1, int r2) {
+    fprintf(OutFile, "\tor   \t%s, %s\n", reglist[r2], reglist[r1]);
+    free_register(r1);
+    return r2;
+}
+
+int assembly_xor(int r1, int r2) {
+    fprintf(OutFile, "\txor  \t%s, %s\n", reglist[r2], reglist[r1]);
+    free_register(r1);
+    return r2;
+}
+
+int assembly_lshift(int r1, int r2) {
+    fprintf(OutFile, "\tmov  \tcl, %s\n", breglist[r2]);
+    fprintf(OutFile, "\tshl  \t%s, cl\n", reglist[r1]);
+    free_register(r2);
+    return r1;
+}
+
+
+int assembly_rshift(int r1, int r2) {
+    fprintf(OutFile, "\tmov  \tcl, %s\n", breglist[r2]);
+    fprintf(OutFile, "\tshr  \t%s, cl\n", reglist[r1]);
+    free_register(r2);
+    return r1;
+}
+
+int assembly_negate(int r) {
+    fprintf(OutFile, "\tneg  \t%s\n", reglist[r]);
+    return r;
+}
+
+int assembly_invert(int r) {
+    fprintf(OutFile, "\tnot  \t%s\n", reglist[r]);
+    return r;
+}
+
+int assembly_lognot(int r) {
+    fprintf(OutFile, "\ttest \t%s, %s\n", reglist[r], reglist[r]);
+    fprintf(OutFile, "\tsete \t%s\n", breglist[r]);
+    fprintf(OutFile, "\tmovzx\t%s, %s\n", reglist[r], breglist[r]);
+    return (r);
+}
+
+int assembly_boolean(int r, int op, int label) {
+    fprintf(OutFile, "\ttest \t%s, %s\n", reglist[r], reglist[r]);
+    if (op == NODE_IF || op == NODE_WHILE)
+        fprintf(OutFile, "\tje   \tL%d\n", label);
+    else {
+        fprintf(OutFile, "\tsetnz\t%s\n", breglist[r]);
+        fprintf(OutFile, "\tmovzx\t%s, byte %s\n", reglist[r], breglist[r]);
+    }
+    return (r);
+}
+
 //genAST
-int assembly_ast_node(struct ASTNode* node, int reg, OperationType parent_type) {
+int assembly_ast_node(struct ASTNode* node, int label, OperationType parent_type) {
 	
     switch (node->operation) {
     case NODE_IF: return assembly_if(node);
@@ -394,6 +515,20 @@ int assembly_ast_node(struct ASTNode* node, int reg, OperationType parent_type) 
     case NODE_MULTIPLY: return assembly_mul(leftRegister, rightRegister);
     case NODE_DIVIDE: return assembly_div(leftRegister, rightRegister);
 
+    case NODE_AND: return assembly_and(leftRegister, rightRegister);
+    case NODE_OR: return assembly_or(leftRegister, rightRegister);
+    case NODE_XOR: return assembly_xor(leftRegister, rightRegister);
+    case NODE_LSHIFT: return assembly_lshift(leftRegister, rightRegister);
+    case NODE_RSHIFT: return assembly_rshift(leftRegister, rightRegister);
+    case NODE_POSTINC: return assembly_load_global(node->value, node->operation);
+    case NODE_POSTDEC: return assembly_load_global(node->value, node->operation);
+    case NODE_PREINC: return assembly_load_global(node->left->value, node->operation);
+    case NODE_PREDEC: return assembly_load_global(node->left->value, node->operation);
+    case NODE_NEGATE: return assembly_negate(leftRegister, rightRegister);
+    case NODE_INVERT: return assembly_invert(leftRegister, rightRegister);
+    case NODE_LOGNOT: return assembly_lognot(leftRegister, rightRegister);
+    case NODE_TOBOOL: return assembly_boolean(leftRegister, parent_type, label);
+
     case NODE_EQUALS:
     case NODE_NOTEQUALS:
     case NODE_LESS:
@@ -401,16 +536,16 @@ int assembly_ast_node(struct ASTNode* node, int reg, OperationType parent_type) 
     case NODE_LESSOREQUALS:
     case NODE_GREATEROREQUALS:
         if (parent_type == NODE_IF || parent_type == NODE_WHILE)
-            return assembly_compare_and_jump(node->operation, leftRegister, rightRegister, reg);
+            return assembly_compare_and_jump(node->operation, leftRegister, rightRegister, label);
         else
             return assembly_compare_and_set(node->operation, leftRegister, rightRegister);
     
     case NODE_INTLIT: return assembly_load_int(node->value, node->type);
+    case NODE_STRINGLIT: return assembly_load_global_string(node->value);
     case NODE_IDENTIFIER: 
         if (node->isRvalue || parent_type == NODE_DEREFERENCE)
-            return assembly_load_global(node->value);
+            return assembly_load_global(node->value, node->operation);
         return -1;
-    //case NODE_LVALUEIDENT: return assembly_store_global(reg, node->value);
     case NODE_ASSIGN: 
         switch (node->right->operation)
         {
@@ -444,6 +579,10 @@ int assembly_ast_node(struct ASTNode* node, int reg, OperationType parent_type) 
         assembly_printint(leftRegister);
         freeall_registers();
     return -1; 
+    case NODE_PRINT2:
+        assembly_printchar(leftRegister);
+        freeall_registers();
+        return -1;
     default:
         fprintf(stderr, "[CG] Unknown AST operator %d\n", node->operation);
         exit(1);

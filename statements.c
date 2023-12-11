@@ -12,6 +12,7 @@ void global_declarations(Lexer* lexer) {
         if (lexer->curr_token.tokenType == TOKEN_LPAREN) {
             tree = function_declaration(lexer, type);
             if (O_dumpAST || 1) {
+                fprintf(stdout, "\n\n");
                 dumpAST(tree, 0, 0);
                 fprintf(stdout, "\n\n");
             }
@@ -122,13 +123,35 @@ struct ASTNode* print_statement(Lexer* lexer) {
     match(TOKEN_LPAREN, lexer);
 
     tree = binexpr(lexer, 0);
-    tree = modify_type(tree, PRIM_INT, 0);
+    tree = modify_type(tree, PRIM_LONG, 0);
     if (tree == NULL) {
         fprintf(stderr, "Incompatible expression in assignment");
         exit(1);
     }
 
     tree = ast_new_unary(NODE_PRINT, PRIM_NONE, tree, 0);
+
+    match(TOKEN_RPAREN, lexer);
+
+    return tree;
+}
+
+struct ASTNode* print2_statement(Lexer* lexer) {
+    struct ASTNode* tree;
+    PrimitiveType leftType, rightType;
+    int reg;
+
+    match(TOKEN_PRINT2, lexer);
+    match(TOKEN_LPAREN, lexer);
+
+    tree = binexpr(lexer, 0);
+    tree = modify_type(tree, PRIM_CHAR, 0);
+    if (tree == NULL) {
+        fprintf(stderr, "Incompatible expression in assignment");
+        exit(1);
+    }
+
+    tree = ast_new_unary(NODE_PRINT2, PRIM_NONE, tree, 0);
 
     match(TOKEN_RPAREN, lexer);
 
@@ -176,8 +199,7 @@ struct ASTNode* if_statement(Lexer* lexer) {
     condAST = binexpr(lexer, 0);
 
     if (condAST->operation < NODE_EQUALS || condAST->operation > NODE_GREATEROREQUALS) {
-        fprintf(stderr, "[PARSER] Bad comparison operator on line %d", lexer->curr_line);
-        exit(1);
+        condAST = ast_new_unary(NODE_TOBOOL, condAST->type, condAST, 0);
     }
 
     match(TOKEN_RPAREN, lexer);
@@ -201,8 +223,7 @@ struct ASTNode* while_statement(Lexer* lexer) {
     condAST = binexpr(lexer, 0);
 
     if (condAST->operation < NODE_EQUALS || condAST->operation > NODE_GREATEROREQUALS) {
-        fprintf(stderr, "[PARSER] Bad comparison operator on line %d", lexer->curr_line);
-        exit(1);
+        condAST = ast_new_unary(NODE_TOBOOL, condAST->type, condAST, 0);
     }
 
     match(TOKEN_RPAREN, lexer);
@@ -225,8 +246,7 @@ struct ASTNode* for_statement(Lexer* lexer) {
 
     condAST = binexpr(lexer, 0);
     if (condAST->operation < NODE_EQUALS || condAST->operation > NODE_GREATEROREQUALS) {
-        fprintf(stderr, "[PARSER] Bad comparison operator on line %d", lexer->curr_line);
-        exit(1);
+        condAST = ast_new_unary(NODE_TOBOOL, condAST->type, condAST, 0);
     }
     match(TOKEN_SEMICOLON, lexer);
 
@@ -247,6 +267,7 @@ struct ASTNode* single_statement(Lexer* lexer) {
     switch (lexer->curr_token.tokenType)
     {
     case TOKEN_PRINT: return print_statement(lexer);
+    case TOKEN_PRINT2: return print2_statement(lexer);
     case TOKEN_CHAR:
     case TOKEN_INT:
     case TOKEN_LONG:
@@ -273,7 +294,7 @@ struct ASTNode* compound_statement(Lexer* lexer) {
 
         tree = single_statement(lexer);
 
-        if (tree != NULL && (tree->operation == NODE_PRINT || tree->operation == NODE_ASSIGN || tree->operation == NODE_RETURN || tree->operation == NODE_FUNCCALL))
+        if (tree != NULL && (tree->operation == NODE_PRINT || tree->operation == NODE_PRINT2 || tree->operation == NODE_ASSIGN || tree->operation == NODE_RETURN || tree->operation == NODE_FUNCCALL))
             match(TOKEN_SEMICOLON, lexer);
 
         if (tree != NULL) {

@@ -21,14 +21,14 @@ char* token_to_string(TokenType t) {
 	if (t == TOKEN_STAR)             return "TOKEN_STAR           ";
 	if (t == TOKEN_SLASH)            return "TOKEN_SLASH          ";
 	if (t == TOKEN_EQUALS)           return "TOKEN_EQUALS         ";
-	if (t == TOKEN_NOTEQUALS)        return "TOKEN_NOTEQUALS      ";
+	if (t == TOKEN_NEGATE)        return "TOKEN_NEGATE      ";
 	if (t == TOKEN_LESS)             return "TOKEN_LESS           ";
 	if (t == TOKEN_GREATER)          return "TOKEN_GREATER        ";
 	if (t == TOKEN_LESSOREQUALS)     return "TOKEN_LESSOREQUALS   ";
 	if (t == TOKEN_GREATEROREQUALS)  return "TOKEN_GREATEROREQUALS";
 
 	if (t == TOKEN_AMPERSAND)		 return "TOKEN_AMPERSAND      ";
-	if (t == TOKEN_AND)				 return "TOKEN_AND            ";
+	if (t == TOKEN_LOGAND)				 return "TOKEN_LOGAND            ";
 
 	if (t == TOKEN_ASSING)           return "TOKEN_ASSING         ";
 	if (t == TOKEN_SEMICOLON)        return "TOKEN_SEMICOLON      ";
@@ -58,7 +58,6 @@ static int gendumplabel(void) {
 
 void dumpAST(struct ASTNode* n, int label, int level) {
     int Lfalse, Lstart, Lend;
-
 
     switch (n->operation) {
     case NODE_IF:
@@ -146,8 +145,10 @@ void dumpAST(struct ASTNode* n, int label, int level) {
         fprintf(stdout, "NODE_SCALE %d\n", n->value); return;
     case NODE_PRINT:
         fprintf(stdout, "NODE_PRINT %d\n", n->value); return;
+    case NODE_STRINGLIT:
+        fprintf(stdout, "NODE_STRINGLIT rval label L%d\n", n->value); return;
     default:
         printf("asdasdsa");
-        exit(1);
+        //exit(1);
     }
 }

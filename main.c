@@ -43,7 +43,7 @@ void read_output() {
 		printf("No se pudo abrir el archivo.\n");
 		exit(1);
 	}
-	printf("\n");
+	printf("\n\n\n");
 
 	// Leer y mostrar el contenido del archivo
 	while ((caracter = fgetc(archivo)) != EOF) {
@@ -83,6 +83,7 @@ int main()
 	fclose(outfile);
 	
 	if (1) system("cls");
+
 	read_output();
 
 	return 0;

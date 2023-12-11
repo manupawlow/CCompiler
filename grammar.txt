@@ -52,10 +52,6 @@ preop_statement:  statement
 postop_statement: statement
 
 expression: additive_expression
- 
-prefix_expression: primary
-    | '*' prefix_expression
-    | '&' prefix_expression
 
 additive_expression:
       multiplicative_expression
@@ -76,6 +72,17 @@ primary_expression
 postfix_expression
         : primary_expression
         | postfix_expression '[' expression ']'
+        | postfix_expression '(' expression ')'
+        | postfix_expression '++'
+        | postfix_expression '--'
+
+prefix_expression
+        : postfix_expression
+        | '++' prefix_expression
+        | '--' prefix_expression
+        | prefix_operator prefix_expression
+
+prefix_operator : '&' | '*' | '-' | '~' | '!'
 
 NUMBER:     TOKEN_INT
 IDENTIFIER: TOKEN_IDENTIFIER
