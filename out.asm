@@ -1,8 +1,5 @@
-extern printf
-
-section .data
-	_format db '%d', 0xA, 0
-	_format2 db '%c', 0
+extern printint
+extern printchar
 
 section .bss
 	a: resb 4
@@ -37,20 +34,14 @@ main:
 	movsxd	r8, r8d
 	movzx	r9, byte [rbp + -4]
 	add  	r9, r8		; r9 = r9 + r8
-
-	mov  	rdi, _format	; printf r9
-	mov  	rsi, r9
-	mov  	al, 0
-	call 	printf
-
+	mov  	rdi, r9
+	call 	printint
+	mov  	r8, rax
 	movsx 	r8, word [rbp + -8]
 	movsxd	r8, r8d
-
-	mov  	rdi, _format	; printf r8
-	mov  	rsi, r8
-	mov  	al, 0
-	call 	printf
-
+	mov  	rdi, r8
+	call 	printint
+	mov  	r9, rax
 	mov  	r8, 0		; r8 = 0
 	mov  	eax, r8d
 	jmp  	L1		; goto L1

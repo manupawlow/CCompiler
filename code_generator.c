@@ -51,13 +51,9 @@ void assembly_preamble()
 {
     freeall_registers();
     fputs(
-        "extern printf\n"
-        "\n"
-        "section .data\n"
-        "\t_format db '%d', 0xA, 0\n"
-        "\t_format2 db '%c', 0\n"
-        "\n",
-        OutFile);
+        "extern printint\n"
+        "extern printchar\n\n"
+        ,OutFile);
 }
 
 void assembly_postamble() {
@@ -95,26 +91,6 @@ int assembly_div(int r1, int r2) {
     fprintf(OutFile, "\tmov  \t%s, rax\n", reglist[r1]);
     free_register(r2);
     return(r1);
-}
-
-void assembly_printchar(int r) {
-    fprintf(OutFile, "\n");
-    fprintf(OutFile, "\tmov  \trdi, _format2\t; printf2 %s\n", reglist[r]);
-    fprintf(OutFile, "\tmov  \trsi, %s\n", reglist[r]);
-    fprintf(OutFile, "\tmov  \tal, 0\n");
-    fprintf(OutFile, "\tcall \tprintf\n");
-    fprintf(OutFile, "\n");
-    free_register(r);
-}
-
-void assembly_printint(int r) {
-    fprintf(OutFile, "\n");
-    fprintf(OutFile, "\tmov  \trdi, _format\t; printf %s\n", reglist[r]);
-    fprintf(OutFile, "\tmov  \trsi, %s\n", reglist[r]);
-    fprintf(OutFile, "\tmov  \tal, 0\n");
-    fprintf(OutFile, "\tcall \tprintf\n");
-    fprintf(OutFile, "\n");
-    free_register(r);
 }
 
 int assembly_load_global(int id, OperationType op) {
@@ -666,14 +642,6 @@ int assembly_ast_node(struct ASTNode* node, int label, OperationType parent_type
             rightRegister = assembly_load_int(node->value, PRIM_INT);
             return assembly_mul(leftRegister, rightRegister);
         }
-    case NODE_PRINT:
-        assembly_printint(leftRegister);
-        freeall_registers();
-    return -1; 
-    case NODE_PRINT2:
-        assembly_printchar(leftRegister);
-        freeall_registers();
-        return -1;
     default:
         fprintf(stderr, "[CG] Unknown AST operator %d\n", node->operation);
         exit(1);

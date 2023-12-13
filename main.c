@@ -1,6 +1,7 @@
 #pragma warning(disable : 4996)
 #include <string.h>
-#include "lexer.h"
+#include "symbols.h"
+#include "parser.h"
 #include "parser.h"
 #include "code_generator.h"
 #include "statements.h"
@@ -72,6 +73,8 @@ int main()
 
 	//Start compilation
 	O_dumpAST = 1;
+	addGlobal("printint", PRIM_INT, STRU_FUNCTION, 0, 0);
+	addGlobal("printchar", PRIM_VOID, STRU_FUNCTION, 0, 0);
 	struct ASTNode* tree;
 	Lexer lexer = lexer_new(infile);
 	lexer_next_token(&lexer);

@@ -118,49 +118,6 @@ struct ASTNode* return_statement(Lexer* lexer) {
     return tree;
 }
 
-struct ASTNode* print_statement(Lexer* lexer) {
-    struct ASTNode* tree;
-    PrimitiveType leftType, rightType;
-    int reg;
-
-    match(TOKEN_PRINT, lexer);
-    match(TOKEN_LPAREN, lexer);
-
-    tree = binexpr(lexer, 0);
-    tree = modify_type(tree, PRIM_LONG, 0);
-    if (tree == NULL) {
-        fprintf(stderr, "Incompatible expression in assignment");
-        exit(1);
-    }
-
-    tree = ast_new_unary(NODE_PRINT, PRIM_NONE, tree, 0);
-
-    match(TOKEN_RPAREN, lexer);
-
-    return tree;
-}
-
-struct ASTNode* print2_statement(Lexer* lexer) {
-    struct ASTNode* tree;
-    PrimitiveType leftType, rightType;
-    int reg;
-
-    match(TOKEN_PRINT2, lexer);
-    match(TOKEN_LPAREN, lexer);
-
-    tree = binexpr(lexer, 0);
-    tree = modify_type(tree, PRIM_CHAR, 0);
-    if (tree == NULL) {
-        fprintf(stderr, "Incompatible expression in assignment");
-        exit(1);
-    }
-
-    tree = ast_new_unary(NODE_PRINT2, PRIM_NONE, tree, 0);
-
-    match(TOKEN_RPAREN, lexer);
-
-    return tree;
-}
 
 //unused
 struct ASTNode* assignment_statement(Lexer* lexer) {
@@ -270,8 +227,6 @@ struct ASTNode* single_statement(Lexer* lexer) {
 
     switch (lexer->curr_token.tokenType)
     {
-    case TOKEN_PRINT: return print_statement(lexer);
-    case TOKEN_PRINT2: return print2_statement(lexer);
     case TOKEN_CHAR:
     case TOKEN_INT:
     case TOKEN_LONG:
@@ -297,7 +252,7 @@ struct ASTNode* compound_statement(Lexer* lexer) {
 
         tree = single_statement(lexer);
 
-        if (tree != NULL && (tree->operation == NODE_PRINT || tree->operation == NODE_PRINT2 || tree->operation == NODE_ASSIGN || tree->operation == NODE_RETURN || tree->operation == NODE_FUNCCALL))
+        if (tree != NULL && (tree->operation == NODE_ASSIGN || tree->operation == NODE_RETURN || tree->operation == NODE_FUNCCALL))
             match(TOKEN_SEMICOLON, lexer);
 
         if (tree != NULL) {

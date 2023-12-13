@@ -41,7 +41,6 @@ char* token_to_string(TokenType t) {
 	if (t == TOKEN_RPAREN)           return "TOKEN_RPAREN         ";
 	if (t == TOKEN_LBRACE)           return "TOKEN_LBRACE         ";
 	if (t == TOKEN_RBRACE)           return "TOKEN_RBRACE         ";
-	if (t == TOKEN_PRINT)            return "TOKEN_PRINT          ";
 	if (t == TOKEN_IF)               return "TOKEN_IF             ";
 	if (t == TOKEN_ELSE)             return "TOKEN_ELSE           ";
 	if (t == TOKEN_WHILE)            return "TOKEN_WHILE          ";
@@ -146,8 +145,6 @@ void dumpAST(struct ASTNode* n, int label, int level) {
         return;
     case NODE_SCALE:
         fprintf(stdout, "NODE_SCALE %d\n", n->value); return;
-    case NODE_PRINT:
-        fprintf(stdout, "NODE_PRINT %d\n", n->value); return;
     case NODE_STRINGLIT:
         fprintf(stdout, "NODE_STRINGLIT rval label L%d\n", n->value); return;
     default:

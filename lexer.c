@@ -127,8 +127,6 @@ PrimitiveType parse_type(Lexer* lexer) {
 }
 
 int keyword_token(char* s) {
-	if (strcmp(s, "printint") == 0) return TOKEN_PRINT;
-	if (strcmp(s, "printchar") == 0) return TOKEN_PRINT2;
 	if (strcmp(s, "if") == 0) return TOKEN_IF;
 	if (strcmp(s, "else") == 0) return TOKEN_ELSE;
 	if (strcmp(s, "while") == 0) return TOKEN_WHILE;
