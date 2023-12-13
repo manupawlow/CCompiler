@@ -5,14 +5,19 @@
 #include <stdlib.h>
 
 #define MAX_TEXT_LEN 512 
-
 #define MAX_TOKEN_LEN 512 
+#define NSYMBOLS 1024 
 
 int Functionid;
 
 char Text[MAX_TOKEN_LEN + 1];
 
 static int O_dumpAST = 0;
+
+typedef enum {
+	GLOBAL = 1,
+	LOCAL,
+} STORAGECLASS;
 
 typedef enum {
 	TOKEN_EOF,
@@ -104,8 +109,6 @@ struct ASTNode {
 	struct ASTNode* right;
 };
 
-#define NSYMBOLS 1024 
-
 typedef enum {
 	STRU_VARIABLE,
 	STRU_FUNCTION,
@@ -118,9 +121,13 @@ typedef struct {
 	StructuralType stype;
 	int endlabel;
 	int size;
+	STORAGECLASS class;
+	int posn; //local offset from stack
 } Symbol;
 
-Symbol GlobalSymbols[NSYMBOLS];
+Symbol SymbolTable[NSYMBOLS];
+int Globs;
+int Locls;
 
 void match(TokenType type, Lexer* lexer);
 int label_id();

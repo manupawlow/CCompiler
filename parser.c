@@ -42,13 +42,13 @@ struct ASTNode* parse_funccall(Lexer* lexer) {
     struct ASTNode* tree;
     int id;
 
-    if ((id = findGlobal(Text)) == -1) {
+    if ((id = findSymbol(Text)) == -1) {
         fprintf(stderr, "Undeclared function %s", Text);
         exit(1);
     }
 
-    if (GlobalSymbols[id].stype != STRU_FUNCTION) {
-        fprintf(stderr, "%s is not a function", GlobalSymbols[id].name);
+    if (SymbolTable[id].stype != STRU_FUNCTION) {
+        fprintf(stderr, "%s is not a function", SymbolTable[id].name);
         exit(1);
     }
 
@@ -56,7 +56,7 @@ struct ASTNode* parse_funccall(Lexer* lexer) {
 
     tree = binexpr(lexer, 0);
 
-    tree = ast_new_unary(NODE_FUNCCALL, GlobalSymbols[id].type, tree, id);
+    tree = ast_new_unary(NODE_FUNCCALL, SymbolTable[id].type, tree, id);
     
     match(TOKEN_RPAREN, lexer);
 
@@ -67,16 +67,16 @@ struct ASTNode* array_access(Lexer* lexer) {
     struct ASTNode* left, *right;
     int id;
 
-    if ((id = findGlobal(Text)) == -1) {
+    if ((id = findSymbol(Text)) == -1) {
         fprintf(stderr, "Undeclared array %s", Text);
         exit(1);
     }
 
-    if (GlobalSymbols[id].stype != STRU_ARRAY) {
+    if (SymbolTable[id].stype != STRU_ARRAY) {
         fprintf(stderr, "Identifier %s is not an array", Text);
         exit(1);
     }
-    left = ast_new_leaf(NODE_ADDRESS, GlobalSymbols[id].type, id);
+    left = ast_new_leaf(NODE_ADDRESS, SymbolTable[id].type, id);
     
     lexer_next_token(lexer);
 
@@ -91,7 +91,7 @@ struct ASTNode* array_access(Lexer* lexer) {
 
     right = modify_type(right, left->type, NODE_ADD);
 
-    left = ast_new_node(NODE_ADD, GlobalSymbols[id].type, left, NULL, right, 0);
+    left = ast_new_node(NODE_ADD, SymbolTable[id].type, left, NULL, right, 0);
     left = ast_new_unary(NODE_DEREFERENCE, value_at(left->type), left, 0);
  
     return left;
@@ -182,8 +182,8 @@ struct ASTNode* parse_postfix(Lexer* lexer) {
         return array_access(lexer);
     }
 
-    id = findGlobal(Text);
-    if (id == -1 || GlobalSymbols[id].stype != STRU_VARIABLE) {
+    id = findSymbol(Text);
+    if (id == -1 || SymbolTable[id].stype != STRU_VARIABLE) {
         fprintf(stderr, ERROR, Text);
         exit(1);
     }
@@ -192,14 +192,14 @@ struct ASTNode* parse_postfix(Lexer* lexer) {
     {
     case TOKEN_INCREMENT:
         lexer_next_token(lexer);
-        n = ast_new_leaf(NODE_POSTINC, GlobalSymbols[id].type, id);
+        n = ast_new_leaf(NODE_POSTINC, SymbolTable[id].type, id);
         break;
     case TOKEN_DECREMENT:
         lexer_next_token(lexer);
-        n = ast_new_leaf(NODE_POSTDEC, GlobalSymbols[id].type, id);
+        n = ast_new_leaf(NODE_POSTDEC, SymbolTable[id].type, id);
         break;
     default:
-        n = ast_new_leaf(NODE_IDENTIFIER, GlobalSymbols[id].type, id);
+        n = ast_new_leaf(NODE_IDENTIFIER, SymbolTable[id].type, id);
         break;
     }
     return n;
@@ -289,7 +289,7 @@ struct ASTNode* binexpr(Lexer* lexer, int prev_precedence) {
         if (operation == NODE_ASSIGN) {
             right->isRvalue = 1;
             right = modify_type(right, left->type, 0);
-            if (left == NULL) {
+            if (left == NULL || right == NULL) {
                 fprintf(stderr, "Incompatible expression in assignment");
                 exit(1);
             }

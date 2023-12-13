@@ -18,30 +18,35 @@ void global_declarations(Lexer* lexer) {
             }
             assembly_ast_node(tree, -1, 0);
         } else {
-            variable_declaration(lexer, type);
+            variable_declaration(lexer, type, 0);
         }
         if (lexer->curr_token.tokenType == TOKEN_EOF)
             break;
     }
 }
 
-void variable_declaration(Lexer* lexer, PrimitiveType type) {
-    int id;
-
+void variable_declaration(Lexer* lexer, PrimitiveType type, int islocal) {
     if (lexer->curr_token.tokenType == TOKEN_LBRACKET) {
         lexer_next_token(lexer);
 
         if (lexer->curr_token.tokenType == TOKEN_INTLIT) {
-            id = addGlobal(Text, pointer_to(type), STRU_ARRAY, 0, lexer->curr_token.value);
-            assembly_generate_global_symbol(id);
+            if (islocal) {
+                addLocal(Text, pointer_to(type), STRU_ARRAY, 0, lexer->curr_token.value);
+            } else {
+                addGlobal(Text, pointer_to(type), STRU_ARRAY, 0, lexer->curr_token.value);
+            }
         }
         lexer_next_token(lexer);
         match(TOKEN_RBRACKET, lexer);
     }
     else {
         while (1) {
-            id = addGlobal(Text, type, STRU_VARIABLE, 0, 1);
-            assembly_generate_global_symbol(id);
+            if (islocal) {
+                addLocal(Text, type, STRU_VARIABLE, 0, 1);
+            }
+            else {
+                addGlobal(Text, type, STRU_VARIABLE, 0, 1);
+            }
 
             if (lexer->curr_token.tokenType == TOKEN_SEMICOLON) {
                 lexer_next_token(lexer);
@@ -65,12 +70,11 @@ struct ASTNode* function_declaration(Lexer* lexer, PrimitiveType type) {
     struct ASTNode* tree, * finalstmt;
     int nameslot, endlabel;
 
-    //type = parse_type(lexer->curr_token.tokenType, lexer);
-    //match(TOKEN_IDENTIFIER, lexer);
-
     endlabel = label_id();
     nameslot = addGlobal(Text, type, STRU_FUNCTION, endlabel, 1);
     Functionid = nameslot;
+
+    cgresetlocals();
 
     match(TOKEN_LPAREN, lexer);
     match(TOKEN_RPAREN, lexer);
@@ -92,7 +96,7 @@ struct ASTNode* function_declaration(Lexer* lexer, PrimitiveType type) {
 struct ASTNode* return_statement(Lexer* lexer) {
     struct ASTNode* tree;
 
-    if (GlobalSymbols[Functionid].type == PRIM_VOID) {
+    if (SymbolTable[Functionid].type == PRIM_VOID) {
         fprintf(stderr, "Can't return from a void function");
         exit(1);
     }
@@ -101,7 +105,7 @@ struct ASTNode* return_statement(Lexer* lexer) {
     match(TOKEN_LPAREN, lexer);
 
     tree = binexpr(lexer, 0);
-    tree = modify_type(tree, GlobalSymbols[Functionid].type, 0);
+    tree = modify_type(tree, SymbolTable[Functionid].type, 0);
     if (tree == NULL) {
         fprintf(stderr, "Incompatible return type");
         exit(1);
@@ -169,12 +173,12 @@ struct ASTNode* assignment_statement(Lexer* lexer) {
         return parse_funccall(lexer);
     }
 
-    if ((id = findGlobal(Text)) == -1) {
+    if ((id = findSymbol(Text)) == -1) {
         fprintf(stderr, "Undeclared variable %s", Text);
         exit(1);
     }
 
-    right = ast_new_leaf(NODE_LVALUEIDENT, GlobalSymbols[id].type, id);
+    right = ast_new_leaf(NODE_LVALUEIDENT, SymbolTable[id].type, id);
 
     match(TOKEN_ASSING, lexer);
 
@@ -273,9 +277,8 @@ struct ASTNode* single_statement(Lexer* lexer) {
     case TOKEN_LONG:
         type = parse_type(lexer);
         match(TOKEN_IDENTIFIER, lexer);
-        variable_declaration(lexer, type);
+        variable_declaration(lexer, type, 1);
         return NULL;
-    //case TOKEN_IDENTIFIER: return assignment_statement(lexer);
     case TOKEN_IF: return if_statement(lexer);
     case TOKEN_WHILE: return while_statement(lexer);
     case TOKEN_FOR: return for_statement(lexer);

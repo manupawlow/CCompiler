@@ -1,5 +1,8 @@
 #include "definitions.h"
 
+Globs = 0;
+Locls = NSYMBOLS - 1;
+
 void match(TokenType type, Lexer* lexer) {
 	if (lexer->curr_token.tokenType != type) {
 		printf("Unexpected token on line %d, expected a %s but found %s\n", lexer->curr_line, token_to_string(type), token_to_string(lexer->curr_token.tokenType));
@@ -96,7 +99,7 @@ void dumpAST(struct ASTNode* n, int label, int level) {
     case NODE_GLUE:
         fprintf(stdout, "\n\n"); return;
     case NODE_FUNCTION:
-        fprintf(stdout, "NODE_FUNCTION %s\n", GlobalSymbols[n->value].name); return;
+        fprintf(stdout, "NODE_FUNCTION %s\n", SymbolTable[n->value].name); return;
     case NODE_ADD:
         fprintf(stdout, "NODE_ADD\n"); return;
     case NODE_SUBTRACT:
@@ -121,9 +124,9 @@ void dumpAST(struct ASTNode* n, int label, int level) {
         fprintf(stdout, "NODE_INTLIT %d\n", n->value); return;
     case NODE_IDENTIFIER:
         if (n->isRvalue)
-            fprintf(stdout, "NODE_IDENT rval %s\n", GlobalSymbols[n->value].name);
+            fprintf(stdout, "NODE_IDENT rval %s\n", SymbolTable[n->value].name);
         else
-            fprintf(stdout, "NODE_IDENT %s\n", GlobalSymbols[n->value].name);
+            fprintf(stdout, "NODE_IDENT %s\n", SymbolTable[n->value].name);
         return;
     case NODE_ASSIGN:
         fprintf(stdout, "NODE_ASSIGN\n"); return;
@@ -132,9 +135,9 @@ void dumpAST(struct ASTNode* n, int label, int level) {
     case NODE_RETURN:
         fprintf(stdout, "NODE_RETURN\n"); return;
     case NODE_FUNCCALL:
-        fprintf(stdout, "NODE_FUNCCALL %s\n", GlobalSymbols[n->value].name); return;
+        fprintf(stdout, "NODE_FUNCCALL %s\n", SymbolTable[n->value].name); return;
     case NODE_ADDRESS:
-        fprintf(stdout, "NODE_ADDR %s\n", GlobalSymbols[n->value].name); return;
+        fprintf(stdout, "NODE_ADDR %s\n", SymbolTable[n->value].name); return;
     case NODE_DEREFERENCE:
         if (n->isRvalue)
             fprintf(stdout, "NODE_DEREF rval\n");

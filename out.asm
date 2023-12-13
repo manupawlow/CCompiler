@@ -18,58 +18,33 @@ global	main
 main:
 	push 	rbp
 	mov  	rbp, rsp
+	add  	rsp, -16
 
-	mov  	r8, 42		; r8 = 42
-	mov  	[a], r8d
-	mov  	r8, 19		; r8 = 19
-	mov  	[b], r8d
-	xor  	r8, r8
-	mov  	r8d, dword [a]
-	xor  	r9, r9
-	mov  	r9d, dword [b]
-	and  	r9, r8
-
-	mov  	rdi, _format	; printf r9
-	mov  	rsi, r9
-	mov  	al, 0
-	call 	printf
-
-	xor  	r8, r8
-	mov  	r8d, dword [a]
-	xor  	r9, r9
-	mov  	r9d, dword [b]
-	or   	r9, r8
+	mov  	r8, 10		; r8 = 10
+	mov  	dword [rbp + -12], r8d
+	mov  	r8, 20		; r8 = 20
+	mov  	dword [rbp + -8], r8d
+	mov  	r8, 30		; r8 = 30
+	mov  	byte [rbp + -4], r8b
+	movzx	r8, byte [rbp + -4]
+	movsx 	r9, word [rbp + -12]
+	movsxd	r9, r9d
+	add  	r9, r8		; r9 = r9 + r8
+	mov  	r8, 2		; r8 = 2
+	add  	r8, r9		; r8 = r8 + r9
+	mov  	dword [rbp + -8], r8d
+	movsx 	r8, word [rbp + -12]
+	movsxd	r8, r8d
+	movzx	r9, byte [rbp + -4]
+	add  	r9, r8		; r9 = r9 + r8
 
 	mov  	rdi, _format	; printf r9
 	mov  	rsi, r9
 	mov  	al, 0
 	call 	printf
 
-	xor  	r8, r8
-	mov  	r8d, dword [a]
-	xor  	r9, r9
-	mov  	r9d, dword [b]
-	xor  	r9, r8
-
-	mov  	rdi, _format	; printf r9
-	mov  	rsi, r9
-	mov  	al, 0
-	call 	printf
-
-	mov  	r8, 1		; r8 = 1
-	mov  	r9, 3		; r9 = 3
-	mov  	cl, r9b
-	shl  	r8, cl
-
-	mov  	rdi, _format	; printf r8
-	mov  	rsi, r8
-	mov  	al, 0
-	call 	printf
-
-	mov  	r8, 63		; r8 = 63
-	mov  	r9, 3		; r9 = 3
-	mov  	cl, r9b
-	shr  	r8, cl
+	movsx 	r8, word [rbp + -8]
+	movsxd	r8, r8d
 
 	mov  	rdi, _format	; printf r8
 	mov  	rsi, r8
@@ -81,5 +56,6 @@ main:
 	jmp  	L1		; goto L1
 
 L1:
+	add  	rsp, 16
 	pop  	rbp
 	ret
