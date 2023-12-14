@@ -3,7 +3,7 @@
 Globs = 0;
 Locls = NSYMBOLS - 1;
 
-void match(TokenType type, Lexer* lexer) {
+void match(_TokenType type, Lexer* lexer) {
 	if (lexer->curr_token.tokenType != type) {
 		printf("Unexpected token on line %d, expected a %s but found %s\n", lexer->curr_line, token_to_string(type), token_to_string(lexer->curr_token.tokenType));
 		exit(1);
@@ -16,7 +16,7 @@ int label_id() {
 	return (id++);
 }
 
-char* token_to_string(TokenType t) {
+char* token_to_string(_TokenType t) {
 	if (t == TOKEN_EOF)              return "TOKEN_EOF            ";
 
 	if (t == TOKEN_PLUS)             return "TOKEN_PLUS           ";

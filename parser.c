@@ -31,7 +31,7 @@ struct ASTNode* ast_new_node(OperationType operation, PrimitiveType type, struct
 struct ASTNode* ast_new_leaf(OperationType operation, PrimitiveType type, int value) { return ast_new_node(operation, type, NULL, NULL, NULL, value); }
 struct ASTNode* ast_new_unary(OperationType operation, PrimitiveType type, struct ASTNode* left, int value) { return ast_new_node(operation, type, left, NULL, NULL, value); }
 
-OperationType arithmetic_operation(TokenType tokenType) {
+OperationType arithmetic_operation(_TokenType tokenType) {
     if (tokenType <= TOKEN_EOF || tokenType >= TOKEN_INTLIT) {
         syntax_error();
     }
@@ -243,7 +243,7 @@ static int _op_prec[] = {
     100, 100,                     // T_PLUS, T_MINUS
     110, 110                      // T_STAR, T_SLASH
 };
-int operator_precedence(TokenType tokenType) {
+int operator_precedence(_TokenType tokenType) {
     if (tokenType >= TOKEN_VOID) {
         fprintf(stderr, "Token with no precedence in op_precedence: %d", (int)tokenType);
         exit(1);
@@ -257,7 +257,7 @@ int operator_precedence(TokenType tokenType) {
     return prec;
 }
 
-int rightassoc(TokenType tokenType) {
+int rightassoc(_TokenType tokenType) {
     return tokenType == TOKEN_ASSING;
 }
 
@@ -267,7 +267,7 @@ struct ASTNode* binexpr(Lexer* lexer, int prev_precedence) {
     struct ASTNode* left, * right;
     struct ASTNode *ltemp, *rtemp;
     OperationType operation;
-    TokenType tokenType;
+    _TokenType tokenType;
 
     left = parse_prefix(lexer);
     

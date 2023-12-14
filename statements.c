@@ -18,20 +18,23 @@ void global_declarations(Lexer* lexer) {
             }
             assembly_ast_node(tree, -1, 0);
         } else {
-            variable_declaration(lexer, type, 0);
+            variable_declaration(lexer, type, 0, 0);
+            match(TOKEN_SEMICOLON, lexer);
         }
         if (lexer->curr_token.tokenType == TOKEN_EOF)
             break;
     }
 }
 
-void variable_declaration(Lexer* lexer, PrimitiveType type, int islocal) {
+void variable_declaration(Lexer* lexer, PrimitiveType type, int islocal, int isParam) {
     if (lexer->curr_token.tokenType == TOKEN_LBRACKET) {
         lexer_next_token(lexer);
 
         if (lexer->curr_token.tokenType == TOKEN_INTLIT) {
             if (islocal) {
-                addLocal(Text, pointer_to(type), STRU_ARRAY, 0, lexer->curr_token.value);
+                fprintf(stderr, "For now, declaration of local arrays is not implemented");
+                exit(1);
+                //addLocal(Text, pointer_to(type), STRU_ARRAY, 0, lexer->curr_token.value);
             } else {
                 addGlobal(Text, pointer_to(type), STRU_ARRAY, 0, lexer->curr_token.value);
             }
@@ -40,43 +43,74 @@ void variable_declaration(Lexer* lexer, PrimitiveType type, int islocal) {
         match(TOKEN_RBRACKET, lexer);
     }
     else {
-        while (1) {
+        //while (1) {
             if (islocal) {
-                addLocal(Text, type, STRU_VARIABLE, 0, 1);
-            }
-            else {
+                if (addLocal(Text, type, STRU_VARIABLE, isParam, 1) == -1) {
+                    fprintf(stderr, "Variable %s already defined", Text);
+                    exit(1);
+                }
+            } else {
+                //TODO: se pueden duplicar los global?
                 addGlobal(Text, type, STRU_VARIABLE, 0, 1);
             }
 
-            if (lexer->curr_token.tokenType == TOKEN_SEMICOLON) {
-                lexer_next_token(lexer);
-                return;
-            }
+            //if (lexer->curr_token.tokenType == TOKEN_SEMICOLON) {
+            //    lexer_next_token(lexer);
+            //    return;
+            //}
 
-            if (lexer->curr_token.tokenType == TOKEN_COMMA) {
-                lexer_next_token(lexer);
-                match(TOKEN_IDENTIFIER, lexer);
-                continue;
-            }
+            //if (lexer->curr_token.tokenType == TOKEN_COMMA) {
+            //    lexer_next_token(lexer);
+            //    match(TOKEN_IDENTIFIER, lexer);
+            //    continue;
+            //}
 
-            fprintf(stderr, "Missing , or ; after identifier");
+            //fprintf(stderr, "Missing , or ; after identifier");
+            //exit(1);
+        //}
+    }
+}
+
+int parameter_declaration(Lexer* lexer) {
+    int type;
+    int paramCount = 0;
+
+    while (lexer->curr_token.tokenType != TOKEN_RPAREN)
+    {
+        type = parse_type(lexer);
+        match(TOKEN_IDENTIFIER, lexer);
+        variable_declaration(lexer, type, 1, 1);
+        paramCount++;
+
+        switch (lexer->curr_token.tokenType)
+        {
+        case TOKEN_COMMA:
+            lexer_next_token(lexer);
+            break;
+        case TOKEN_RPAREN:
+            break;
+        default:
+            fprintf(stderr, "Unexpected token in parameter list");
             exit(1);
         }
     }
-    match(TOKEN_SEMICOLON, lexer);
+    return paramCount;
 }
 
 struct ASTNode* function_declaration(Lexer* lexer, PrimitiveType type) {
     struct ASTNode* tree, * finalstmt;
     int nameslot, endlabel;
+    int paramCount;
 
     endlabel = label_id();
     nameslot = addGlobal(Text, type, STRU_FUNCTION, endlabel, 1);
     Functionid = nameslot;
 
-    cgresetlocals();
-
     match(TOKEN_LPAREN, lexer);
+
+    paramCount = parameter_declaration(lexer);
+    SymbolTable[nameslot].nelems = paramCount;
+
     match(TOKEN_RPAREN, lexer);
 
     tree = compound_statement(lexer);
@@ -232,7 +266,8 @@ struct ASTNode* single_statement(Lexer* lexer) {
     case TOKEN_LONG:
         type = parse_type(lexer);
         match(TOKEN_IDENTIFIER, lexer);
-        variable_declaration(lexer, type, 1);
+        variable_declaration(lexer, type, 1, 0);
+        match(TOKEN_SEMICOLON, lexer);
         return NULL;
     case TOKEN_IF: return if_statement(lexer);
     case TOKEN_WHILE: return while_statement(lexer);

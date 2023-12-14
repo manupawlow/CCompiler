@@ -5,6 +5,8 @@
 #include "parser.h"
 #include "code_generator.h"
 #include "statements.h"
+#include <Windows.h>
+#include <stdio.h>
 
 int interpretAST(struct ASTNode* n) {
 	int leftval = 0, rightval = 0;
@@ -55,6 +57,52 @@ void read_output() {
 	fclose(archivo);
 }
 
+void copy_output() {
+	FILE* archivo = fopen("out.asm", "r");
+
+	if (archivo == NULL) {
+		perror("Error al abrir el archivo");
+		return 1;
+	}
+
+	// Obtener el tamaño del archivo
+	fseek(archivo, 0, SEEK_END);
+	long tamaño = ftell(archivo);
+	rewind(archivo);
+
+	// Leer el contenido del archivo
+	char* contenido = (char*)malloc(tamaño + 1);
+	if (contenido == NULL) {
+		perror("Error al asignar memoria para el contenido");
+		fclose(archivo);
+		return 1;
+	}
+
+	fread(contenido, 1, tamaño, archivo);
+	contenido[tamaño] = '\0';
+
+	// Cerrar el archivo
+	fclose(archivo);
+
+	// Abrir un proceso para ejecutar el comando xclip y pasarle el contenido del archivo
+	FILE* pipe = _popen("clip", "w");
+	if (pipe == NULL) {
+		perror("Error al abrir el proceso xclip");
+		free(contenido);
+		return 1;
+	}
+
+	// Escribir el contenido en el proceso xclip
+	fprintf(pipe, "%s", contenido);
+
+	// Cerrar el proceso xclip
+	_pclose(pipe);
+
+	// Liberar la memoria asignada
+	free(contenido);
+}
+
+
 int main()
 {
     FILE* infile;
@@ -88,6 +136,7 @@ int main()
 	if (1) system("cls");
 
 	read_output();
+	copy_output();
 
 	return 0;
 }

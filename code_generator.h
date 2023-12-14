@@ -26,6 +26,6 @@ void assembly_generate_global_symbol(int id);
 int assembly_if(struct ASTNode* n);
 int get_type_size(PrimitiveType type);
 int assembly_generate_global_string(char* text);
-int gengetlocaloffset(int type, int isparam);
+int newlocaloffset(int type, int isparam);
 
 #endif // CODE_GENERATOR_H_

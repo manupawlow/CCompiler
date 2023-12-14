@@ -17,6 +17,7 @@ static int O_dumpAST = 0;
 typedef enum {
 	GLOBAL = 1,
 	LOCAL,
+	PARAM,
 } STORAGECLASS;
 
 typedef enum {
@@ -44,10 +45,10 @@ typedef enum {
 	TOKEN_RETURN,
 	TOKEN_VOID, TOKEN_CHAR, TOKEN_INT, TOKEN_LONG,
 	TOKEN_COMMA,
-} TokenType;
+} _TokenType;
 
 typedef struct {
-	TokenType tokenType;
+	_TokenType tokenType;
 	int value;
 	int line;
 } Token;
@@ -121,15 +122,16 @@ typedef struct {
 	int size;
 	STORAGECLASS class;
 	int posn; //local offset from stack
+#define nelems posn
 } Symbol;
 
 Symbol SymbolTable[NSYMBOLS];
 int Globs;
 int Locls;
 
-void match(TokenType type, Lexer* lexer);
+void match(_TokenType type, Lexer* lexer);
 int label_id();
-char* token_to_string(TokenType t);
+char* token_to_string(_TokenType t);
 void dumpAST(struct ASTNode* n, int label, int level);
 
 #endif // DEFINITIONS_H_

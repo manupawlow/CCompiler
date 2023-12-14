@@ -16,7 +16,7 @@ void updatesym(int slot, char* name, int type, int stype, int class, int endlabe
 
 int findGlobal(char* s) {
     for (int i = 0; i < Globs; i++) {
-        if (*s == *SymbolTable[i].name && !strcmp(s, SymbolTable[i].name))
+        if (SymbolTable[i].class != PARAM && *s == *SymbolTable[i].name && !strcmp(s, SymbolTable[i].name))
             return i;
     }
     return -1;
@@ -65,14 +65,21 @@ int addGlobal(char* name, PrimitiveType type, StructuralType stype, int endlabel
     return slot;
 }
 
-int addLocal(char* name, PrimitiveType type, StructuralType stype, int endlabel, int size) {
-    int slot, posn;
+int addLocal(char* name, PrimitiveType type, StructuralType stype, int isparam, int size) {
+    int localslot, posn;
 
-    if ((slot = findLocal(name)) != -1)
-        return slot;
+    if ((localslot = findLocal(name)) != -1)
+        return localslot;
 
-    slot = newLocal();
-    posn = gengetlocaloffset(type, 0);
-    updatesym(slot, name, type, stype, LOCAL, endlabel, size, posn);
-    return slot;
+    localslot = newLocal();
+    if (isparam) {
+        updatesym(localslot, name, type, stype, PARAM, 0, size, 0);
+        updatesym(newGlobal(), name, type, stype, PARAM, 0, size, 0);
+    }
+    else {
+        updatesym(localslot, name, type, stype, LOCAL, 0, size, 0);
+    }
+
+    //posn = newlocaloffset(type, 0);
+    return localslot;
 }

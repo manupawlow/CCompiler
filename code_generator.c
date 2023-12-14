@@ -3,16 +3,14 @@
 static int localOffset;
 static int stackOffset;
 
-static int freereg[4];
-static char* reglist[4] = { "r8", "r9", "r10", "r11" };
-static char* breglist[4] = { "r8b", "r9b", "r10b", "r11b" };
-static char* dreglist[4] = { "r8d", "r9d", "r10d", "r11d" };
+#define NUMFREEREGS 4
+#define FIRSTPARAMREG 9
+static int freereg[NUMFREEREGS];
+static char* reglist[] = { "r10", "r11", "r12", "r13", "r9", "r8", "rcx", "rdx", "rsi", "rdi" };
+static char* breglist[] = { "r10b", "r11b", "r12b", "r13b", "r9b", "r8b", "cl", "dl", "sil", "dil" };
+static char* dreglist[] = { "r10d", "r11d", "r12d", "r13d", "r9d", "r8d", "ecx", "edx", "esi", "edi" };
 
-void cgresetlocals(void) {
-    localOffset = 0;
-}
-
-int gengetlocaloffset(int type, int isparam) {
+int newlocaloffset(int type) {
     localOffset += (get_type_size(type) > 4) ? get_type_size(type) : 4;
     return (-localOffset);
 }
@@ -28,7 +26,7 @@ void freeall_registers(void)
 
 static int alloc_register(void)
 {
-    for (int i = 0; i < 4; i++) {
+    for (int i = 0; i < NUMFREEREGS; i++) {
         if (freereg[i]) {
             freereg[i] = 0;
             return(i);
@@ -95,34 +93,34 @@ int assembly_div(int r1, int r2) {
 
 int assembly_load_global(int id, OperationType op) {
     int r = alloc_register();
-    Symbol sym = SymbolTable[id];
-    switch (sym.type)
+    
+    switch (SymbolTable[id].type)
     {
     case PRIM_CHAR: 
-        if (op == NODE_PREINC) fprintf(OutFile, "\tinc  \tbyte [%s]\n", sym.name);
-        if (op == NODE_PREDEC) fprintf(OutFile, "\tdec  \tbyte [%s]\n", sym.name);
-        fprintf(OutFile, "\tmovzx\t%s, byte [%s]\n", reglist[r], sym.name); 
-        if (op == NODE_POSTINC) fprintf(OutFile, "\tinc  \tbyte [%s]\n", sym.name);
-        if (op == NODE_POSTDEC) fprintf(OutFile, "\tdec  \tbyte [%s]\n", sym.name);
+        if (op == NODE_PREINC) fprintf(OutFile, "\tinc  \tbyte [%s]\n", SymbolTable[id].name);
+        if (op == NODE_PREDEC) fprintf(OutFile, "\tdec  \tbyte [%s]\n", SymbolTable[id].name);
+        fprintf(OutFile, "\tmovzx\t%s, byte [%s]\n", reglist[r], SymbolTable[id].name); 
+        if (op == NODE_POSTINC) fprintf(OutFile, "\tinc  \tbyte [%s]\n", SymbolTable[id].name);
+        if (op == NODE_POSTDEC) fprintf(OutFile, "\tdec  \tbyte [%s]\n", SymbolTable[id].name);
 
         break;
     case PRIM_INT:  
-        if (op == NODE_PREINC) fprintf(OutFile, "\tinc  \tdword [%s]\n", sym.name);
-        if (op == NODE_PREDEC) fprintf(OutFile, "\tdec  \tdword [%s]\n", sym.name);
-        fprintf(OutFile, "\tmovsx \t%s, word [%s]\n", reglist[r], sym.name);
+        if (op == NODE_PREINC) fprintf(OutFile, "\tinc  \tdword [%s]\n", SymbolTable[id].name);
+        if (op == NODE_PREDEC) fprintf(OutFile, "\tdec  \tdword [%s]\n", SymbolTable[id].name);
+        fprintf(OutFile, "\tmovsx \t%s, word [%s]\n", reglist[r], SymbolTable[id].name);
         fprintf(OutFile, "\tmovsxd\t%s, %s\n", reglist[r], dreglist[r]);
-        if (op == NODE_POSTINC) fprintf(OutFile, "\tinc  \tdword [%s]\n", sym.name);
-        if (op == NODE_POSTDEC) fprintf(OutFile, "\tdec  \tdword [%s]\n", sym.name);
+        if (op == NODE_POSTINC) fprintf(OutFile, "\tinc  \tdword [%s]\n", SymbolTable[id].name);
+        if (op == NODE_POSTDEC) fprintf(OutFile, "\tdec  \tdword [%s]\n", SymbolTable[id].name);
         break;
     case PRIM_LONG:
     case PRIM_CHARPTR:
     case PRIM_INTPTR:
     case PRIM_LONGPTR:
-        if (op == NODE_PREINC) fprintf(OutFile, "\tinc  \tqword [%s]\n", sym.name);
-        if (op == NODE_PREDEC) fprintf(OutFile, "\tdec  \tqword [%s]\n", sym.name);
-        fprintf(OutFile, "\tmov  \t%s, [%s]\n", reglist[r], sym.name);
-        if (op == NODE_POSTINC) fprintf(OutFile, "\tinc  \tqword [%s]\n", sym.name);
-        if (op == NODE_POSTDEC) fprintf(OutFile, "\tdec  \tqword [%s]\n", sym.name);
+        if (op == NODE_PREINC) fprintf(OutFile, "\tinc  \tqword [%s]\n", SymbolTable[id].name);
+        if (op == NODE_PREDEC) fprintf(OutFile, "\tdec  \tqword [%s]\n", SymbolTable[id].name);
+        fprintf(OutFile, "\tmov  \t%s, [%s]\n", reglist[r], SymbolTable[id].name);
+        if (op == NODE_POSTINC) fprintf(OutFile, "\tinc  \tqword [%s]\n", SymbolTable[id].name);
+        if (op == NODE_POSTDEC) fprintf(OutFile, "\tdec  \tqword [%s]\n", SymbolTable[id].name);
         break;
     default:
         fprintf(stderr, "Bad type in assembly_load_global()");
@@ -135,35 +133,34 @@ int assembly_load_global(int id, OperationType op) {
 
 int assembly_load_local(int id, OperationType op) {
     int r = alloc_register();
-    Symbol sym = SymbolTable[id];
 
-    switch (sym.type)
+    switch (SymbolTable[id].type)
     {
     case PRIM_CHAR:
-        if (op == NODE_PREINC) fprintf(OutFile, "\tinc  \tbyte [rbp + %d]\n", sym.posn);
-        if (op == NODE_PREDEC) fprintf(OutFile, "\tdec  \tbyte [rbp + %d]\n", sym.posn);
-        fprintf(OutFile, "\tmovzx\t%s, byte [rbp + %d]\n", reglist[r], sym.posn);
-        if (op == NODE_POSTINC) fprintf(OutFile, "\tinc  \tbyte [rbp + %d]\n", sym.posn);
-        if (op == NODE_POSTDEC) fprintf(OutFile, "\tdec  \tbyte [rbp + %d]\n", sym.posn);
+        if (op == NODE_PREINC) fprintf(OutFile, "\tinc  \tbyte [rbp + %d]\n", SymbolTable[id].posn);
+        if (op == NODE_PREDEC) fprintf(OutFile, "\tdec  \tbyte [rbp + %d]\n", SymbolTable[id].posn);
+        fprintf(OutFile, "\tmovzx\t%s, byte [rbp + %d]\n", reglist[r], SymbolTable[id].posn);
+        if (op == NODE_POSTINC) fprintf(OutFile, "\tinc  \tbyte [rbp + %d]\n", SymbolTable[id].posn);
+        if (op == NODE_POSTDEC) fprintf(OutFile, "\tdec  \tbyte [rbp + %d]\n", SymbolTable[id].posn);
 
         break;
     case PRIM_INT:
-        if (op == NODE_PREINC) fprintf(OutFile, "\tinc  \tdword [rbp + %d]\n", sym.posn);
-        if (op == NODE_PREDEC) fprintf(OutFile, "\tdec  \tdword [rbp + %d]\n", sym.posn);
-        fprintf(OutFile, "\tmovsx \t%s, word [rbp + %d]\n", reglist[r], sym.posn);
+        if (op == NODE_PREINC) fprintf(OutFile, "\tinc  \tdword [rbp + %d]\n", SymbolTable[id].posn);
+        if (op == NODE_PREDEC) fprintf(OutFile, "\tdec  \tdword [rbp + %d]\n", SymbolTable[id].posn);
+        fprintf(OutFile, "\tmovsx \t%s, word [rbp + %d]\n", reglist[r], SymbolTable[id].posn);
         fprintf(OutFile, "\tmovsxd\t%s, %s\n", reglist[r], dreglist[r]);
-        if (op == NODE_POSTINC) fprintf(OutFile, "\tinc  \tdword [rbp + %d]\n", sym.posn);
-        if (op == NODE_POSTDEC) fprintf(OutFile, "\tdec  \tdword [rbp + %d]\n", sym.posn);
+        if (op == NODE_POSTINC) fprintf(OutFile, "\tinc  \tdword [rbp + %d]\n", SymbolTable[id].posn);
+        if (op == NODE_POSTDEC) fprintf(OutFile, "\tdec  \tdword [rbp + %d]\n", SymbolTable[id].posn);
         break;
     case PRIM_LONG:
     case PRIM_CHARPTR:
     case PRIM_INTPTR:
     case PRIM_LONGPTR:
-        if (op == NODE_PREINC) fprintf(OutFile, "\tinc  \tqword [rbp + %d]\n", sym.posn);
-        if (op == NODE_PREDEC) fprintf(OutFile, "\tdec  \tqword [rbp + %d]\n", sym.posn);
-        fprintf(OutFile, "\tmov  \t%s, [rbp + %d]\n", reglist[r], sym.posn);
-        if (op == NODE_POSTINC) fprintf(OutFile, "\tinc  \tqword [rbp + %d]\n", sym.posn);
-        if (op == NODE_POSTDEC) fprintf(OutFile, "\tdec  \tqword [rbp + %d]\n", sym.posn);
+        if (op == NODE_PREINC) fprintf(OutFile, "\tinc  \tqword [rbp + %d]\n", SymbolTable[id].posn);
+        if (op == NODE_PREDEC) fprintf(OutFile, "\tdec  \tqword [rbp + %d]\n", SymbolTable[id].posn);
+        fprintf(OutFile, "\tmov  \t%s, [rbp + %d]\n", reglist[r], SymbolTable[id].posn);
+        if (op == NODE_POSTINC) fprintf(OutFile, "\tinc  \tqword [rbp + %d]\n", SymbolTable[id].posn);
+        if (op == NODE_POSTDEC) fprintf(OutFile, "\tdec  \tqword [rbp + %d]\n", SymbolTable[id].posn);
         break;
     default:
         fprintf(stderr, "Bad type in assembly_load_global()");
@@ -176,17 +173,17 @@ int assembly_load_local(int id, OperationType op) {
 
 //saves register value into variable
 int assembly_store_global(int r, int id) {
-    Symbol sym = SymbolTable[id];
+    
 
-    switch (sym.type)
+    switch (SymbolTable[id].type)
     {
-    case PRIM_CHAR: fprintf(OutFile, "\tmov  \t[%s], %s\n", sym.name, breglist[r]); break;
-    case PRIM_INT:  fprintf(OutFile, "\tmov  \t[%s], %s\n", sym.name, dreglist[r]); break;
+    case PRIM_CHAR: fprintf(OutFile, "\tmov  \t[%s], %s\n", SymbolTable[id].name, breglist[r]); break;
+    case PRIM_INT:  fprintf(OutFile, "\tmov  \t[%s], %s\n", SymbolTable[id].name, dreglist[r]); break;
     case PRIM_LONG:
     case PRIM_CHARPTR:
     case PRIM_INTPTR:
     case PRIM_LONGPTR:
-        fprintf(OutFile, "\tmov  \t[%s], %s\n", sym.name, reglist[r]); break;
+        fprintf(OutFile, "\tmov  \t[%s], %s\n", SymbolTable[id].name, reglist[r]); break;
     default:
         fprintf(stderr, "Bad type in assembly_store_global()");
         exit(1);
@@ -196,17 +193,17 @@ int assembly_store_global(int r, int id) {
 }
 
 int assembly_store_local(int r, int id) {
-    Symbol sym = SymbolTable[id];
+    
 
-    switch (sym.type)
+    switch (SymbolTable[id].type)
     {
-    case PRIM_CHAR: fprintf(OutFile, "\tmov  \tbyte [rbp + %d], %s\n", sym.posn, breglist[r]); break;
-    case PRIM_INT:  fprintf(OutFile, "\tmov  \tdword [rbp + %d], %s\n", sym.posn, dreglist[r]); break;
+    case PRIM_CHAR: fprintf(OutFile, "\tmov  \tbyte [rbp + %d], %s\n", SymbolTable[id].posn, breglist[r]); break;
+    case PRIM_INT:  fprintf(OutFile, "\tmov  \tdword [rbp + %d], %s\n", SymbolTable[id].posn, dreglist[r]); break;
     case PRIM_LONG:
     case PRIM_CHARPTR:
     case PRIM_INTPTR:
     case PRIM_LONGPTR:
-        fprintf(OutFile, "\tmov  \tqword [rbp + %d], %s\n", sym.posn, reglist[r]); break;
+        fprintf(OutFile, "\tmov  \tqword [rbp + %d], %s\n", SymbolTable[id].posn, reglist[r]); break;
     default:
         fprintf(stderr, "Bad type in assembly_store_local()");
         exit(1);
@@ -235,12 +232,12 @@ int get_type_size(PrimitiveType type) {
 }
 
 void assembly_generate_global_symbol(int id) {
-    Symbol sym = SymbolTable[id];
-    if (sym.stype == STRU_FUNCTION)
+    
+    if (SymbolTable[id].stype == STRU_FUNCTION)
         return;
-    int size = get_type_size(sym.type);
+    int size = get_type_size(SymbolTable[id].type);
     fprintf(OutFile, "section .bss\n");
-    fprintf(OutFile, "\t%s: resb %d\n\n", sym.name, get_type_size(sym.type));
+    fprintf(OutFile, "\t%s: resb %d\n\n", SymbolTable[id].name, get_type_size(SymbolTable[id].type));
 }
 
 //int assembly_compare(int r1, int r2, char* compare_operator, char* symbol) {
@@ -344,9 +341,14 @@ int assembly_while(struct ASTNode* n) {
 
 void assembly_funcpreamble(int id) {
     char* name = SymbolTable[id].name;
+    int i;
+    int paramOffset = 16;
+    int paramReg = FIRSTPARAMREG;
 
-    // Align the stack pointer to be a multiple of 16 less than its previous value
-    stackOffset = (localOffset + 15) & ~15;
+    localOffset = 0;
+
+    //// Align the stack pointer to be a multiple of 16 less than its previous value
+    //stackOffset = (localOffset + 15) & ~15;
 
     fprintf(OutFile,
         "section\t.text\n"
@@ -354,8 +356,30 @@ void assembly_funcpreamble(int id) {
         "%s:\n" 
         "\tpush \trbp\n"
         "\tmov  \trbp, rsp\n"
-        "\tadd  \trsp, %d\n\n"
-        , name, name, -stackOffset);
+        "\n", name, name);
+
+    //parameters
+    for (i = NSYMBOLS - 1; i > Locls; i--) {
+        if (SymbolTable[i].class != PARAM || i < NSYMBOLS - 6)
+            break;
+
+        SymbolTable[i].posn = newlocaloffset(SymbolTable[i].type);
+        assembly_store_local(paramReg--, i);
+    }
+
+    //local variables
+    for (; i > Locls; i--) {
+        if (SymbolTable[i].class == PARAM) {
+            SymbolTable[i].posn = paramOffset;
+            paramOffset += 8;
+        }
+        else {
+            SymbolTable[i].posn = newlocaloffset(SymbolTable[i].type);
+        }
+    }
+
+    stackOffset = (localOffset + 15) & ~15;
+    fprintf(OutFile, "\tadd  \trsp, %d\n", -stackOffset);
 }
 
 void assembly_funcpostamble(int id) {

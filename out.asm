@@ -1,52 +1,218 @@
 extern printint
 extern printchar
 
-section .bss
-	a: resb 4
-
-section .bss
-	b: resb 4
-
-section .bss
-	c: resb 4
-
 section	.text
-global	main
-main:
+global	param8
+param8:
 	push 	rbp
 	mov  	rbp, rsp
-	add  	rsp, -16
 
-	mov  	r8, 10		; r8 = 10
-	mov  	dword [rbp + -12], r8d
-	mov  	r8, 20		; r8 = 20
-	mov  	dword [rbp + -8], r8d
-	mov  	r8, 30		; r8 = 30
-	mov  	byte [rbp + -4], r8b
-	movzx	r8, byte [rbp + -4]
-	movsx 	r9, word [rbp + -12]
-	movsxd	r9, r9d
-	add  	r9, r8		; r9 = r9 + r8
-	mov  	r8, 2		; r8 = 2
-	add  	r8, r9		; r8 = r8 + r9
-	mov  	dword [rbp + -8], r8d
-	movsx 	r8, word [rbp + -12]
-	movsxd	r8, r8d
-	movzx	r9, byte [rbp + -4]
-	add  	r9, r8		; r9 = r9 + r8
-	mov  	rdi, r9
+	mov  	dword [rbp + -4], edi
+	mov  	dword [rbp + -8], esi
+	mov  	dword [rbp + -12], edx
+	mov  	dword [rbp + -16], ecx
+	mov  	dword [rbp + -20], r8d
+	mov  	dword [rbp + -24], r9d
+	add  	rsp, -32
+	movsx 	r10, word [a]
+	movsxd	r10, r10d
+	mov  	rdi, r10
 	call 	printint
-	mov  	r8, rax
-	movsx 	r8, word [rbp + -8]
-	movsxd	r8, r8d
-	mov  	rdi, r8
+	mov  	r11, rax
+	movsx 	r10, word [b]
+	movsxd	r10, r10d
+	mov  	rdi, r10
 	call 	printint
-	mov  	r9, rax
-	mov  	r8, 0		; r8 = 0
-	mov  	eax, r8d
+	mov  	r11, rax
+	movsx 	r10, word [c]
+	movsxd	r10, r10d
+	mov  	rdi, r10
+	call 	printint
+	mov  	r11, rax
+	movsx 	r10, word [d]
+	movsxd	r10, r10d
+	mov  	rdi, r10
+	call 	printint
+	mov  	r11, rax
+	movsx 	r10, word [e]
+	movsxd	r10, r10d
+	mov  	rdi, r10
+	call 	printint
+	mov  	r11, rax
+	movsx 	r10, word [f]
+	movsxd	r10, r10d
+	mov  	rdi, r10
+	call 	printint
+	mov  	r11, rax
+	movsx 	r10, word [g]
+	movsxd	r10, r10d
+	mov  	rdi, r10
+	call 	printint
+	mov  	r11, rax
+	movsx 	r10, word [h]
+	movsxd	r10, r10d
+	mov  	rdi, r10
+	call 	printint
+	mov  	r11, rax
+	mov  	r10, 0		; r10 = 0
+	mov  	eax, r10d
 	jmp  	L1		; goto L1
 
 L1:
-	add  	rsp, 16
+	add  	rsp, 32
+	pop  	rbp
+	ret
+section	.text
+global	param5
+param5:
+	push 	rbp
+	mov  	rbp, rsp
+
+	mov  	dword [rbp + -4], edi
+	mov  	dword [rbp + -8], esi
+	mov  	dword [rbp + -12], edx
+	mov  	dword [rbp + -16], ecx
+	mov  	dword [rbp + -20], r8d
+	mov  	dword [rbp + -24], r9d
+	add  	rsp, -32
+	movsx 	r10, word [a]
+	movsxd	r10, r10d
+	mov  	rdi, r10
+	call 	printint
+	mov  	r11, rax
+	movsx 	r10, word [b]
+	movsxd	r10, r10d
+	mov  	rdi, r10
+	call 	printint
+	mov  	r11, rax
+	movsx 	r10, word [c]
+	movsxd	r10, r10d
+	mov  	rdi, r10
+	call 	printint
+	mov  	r11, rax
+	movsx 	r10, word [d]
+	movsxd	r10, r10d
+	mov  	rdi, r10
+	call 	printint
+	mov  	r11, rax
+	movsx 	r10, word [e]
+	movsxd	r10, r10d
+	mov  	rdi, r10
+	call 	printint
+	mov  	r11, rax
+	mov  	r10, 0		; r10 = 0
+	mov  	eax, r10d
+	jmp  	L2		; goto L2
+
+L2:
+	add  	rsp, 32
+	pop  	rbp
+	ret
+section	.text
+global	param2
+param2:
+	push 	rbp
+	mov  	rbp, rsp
+
+	mov  	dword [rbp + -4], edi
+	mov  	dword [rbp + -8], esi
+	mov  	dword [rbp + -12], edx
+	mov  	dword [rbp + -16], ecx
+	mov  	dword [rbp + -20], r8d
+	mov  	dword [rbp + -24], r9d
+	add  	rsp, -32
+	mov  	r10, 3		; r10 = 3
+	mov  	[c], r10d
+	mov  	r10, 4		; r10 = 4
+	mov  	[d], r10d
+	mov  	r10, 5		; r10 = 5
+	mov  	[e], r10d
+	movsx 	r10, word [a]
+	movsxd	r10, r10d
+	mov  	rdi, r10
+	call 	printint
+	mov  	r11, rax
+	movsx 	r10, word [b]
+	movsxd	r10, r10d
+	mov  	rdi, r10
+	call 	printint
+	mov  	r11, rax
+	movsx 	r10, word [c]
+	movsxd	r10, r10d
+	mov  	rdi, r10
+	call 	printint
+	mov  	r11, rax
+	movsx 	r10, word [d]
+	movsxd	r10, r10d
+	mov  	rdi, r10
+	call 	printint
+	mov  	r11, rax
+	movsx 	r10, word [e]
+	movsxd	r10, r10d
+	mov  	rdi, r10
+	call 	printint
+	mov  	r11, rax
+	mov  	r10, 0		; r10 = 0
+	mov  	eax, r10d
+	jmp  	L3		; goto L3
+
+L3:
+	add  	rsp, 32
+	pop  	rbp
+	ret
+section	.text
+global	param0
+param0:
+	push 	rbp
+	mov  	rbp, rsp
+
+	mov  	dword [rbp + -4], edi
+	mov  	dword [rbp + -8], esi
+	mov  	dword [rbp + -12], edx
+	mov  	dword [rbp + -16], ecx
+	mov  	dword [rbp + -20], r8d
+	mov  	dword [rbp + -24], r9d
+	add  	rsp, -32
+	mov  	r10, 1		; r10 = 1
+	mov  	[a], r10d
+	mov  	r10, 2		; r10 = 2
+	mov  	[b], r10d
+	mov  	r10, 3		; r10 = 3
+	mov  	[c], r10d
+	mov  	r10, 4		; r10 = 4
+	mov  	[d], r10d
+	mov  	r10, 5		; r10 = 5
+	mov  	[e], r10d
+	movsx 	r10, word [a]
+	movsxd	r10, r10d
+	mov  	rdi, r10
+	call 	printint
+	mov  	r11, rax
+	movsx 	r10, word [b]
+	movsxd	r10, r10d
+	mov  	rdi, r10
+	call 	printint
+	mov  	r11, rax
+	movsx 	r10, word [c]
+	movsxd	r10, r10d
+	mov  	rdi, r10
+	call 	printint
+	mov  	r11, rax
+	movsx 	r10, word [d]
+	movsxd	r10, r10d
+	mov  	rdi, r10
+	call 	printint
+	mov  	r11, rax
+	movsx 	r10, word [e]
+	movsxd	r10, r10d
+	mov  	rdi, r10
+	call 	printint
+	mov  	r11, rax
+	mov  	r10, 0		; r10 = 0
+	mov  	eax, r10d
+	jmp  	L4		; goto L4
+
+L4:
+	add  	rsp, 32
 	pop  	rbp
 	ret
