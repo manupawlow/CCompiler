@@ -11,5 +11,6 @@ struct ASTNode* ast_new_leaf(OperationType operation, PrimitiveType type, int va
 struct ASTNode* ast_new_unary(OperationType operation, PrimitiveType type, struct ASTNode* left, int value);
 struct ASTNode* parse_funccall(Lexer* lexer);
 struct ASTNode* parse_primary_factor(Lexer* lexer);
+struct ASTNode* expression_list(Lexer* lexer);
 
 #endif // PARSER_H_

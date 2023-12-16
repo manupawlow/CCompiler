@@ -135,3 +135,4 @@ char* token_to_string(_TokenType t);
 void dumpAST(struct ASTNode* n, int label, int level);
 
 #endif // DEFINITIONS_H_
+

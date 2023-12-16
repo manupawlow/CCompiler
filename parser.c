@@ -54,11 +54,49 @@ struct ASTNode* parse_funccall(Lexer* lexer) {
 
     match(TOKEN_LPAREN, lexer);
 
-    tree = binexpr(lexer, 0);
+    tree = expression_list(lexer);
 
     tree = ast_new_unary(NODE_FUNCCALL, SymbolTable[id].type, tree, id);
     
     match(TOKEN_RPAREN, lexer);
+
+    return tree;
+}
+
+struct ASTNode* expression_list(Lexer* lexer) {
+    struct ASTNode* tree = NULL;
+    struct ASTNode* child = NULL;
+    int exprcount = 0;
+
+    while (lexer->curr_token.tokenType != TOKEN_RPAREN) {
+        child = binexpr(lexer, 0);
+        exprcount++;
+
+        tree = ast_new_node(NODE_GLUE, PRIM_NONE, tree, NULL, child, exprcount);
+
+        switch (lexer->curr_token.tokenType)
+        {
+        case TOKEN_COMMA:
+            lexer_next_token(lexer);
+            break;
+        case TOKEN_RPAREN:
+            break;
+        default:
+            fprintf(stderr, "Unexpected token in expression list");
+            exit(1);
+        }
+    }
+
+    struct ASTNode* aux = tree;
+    int i = 0;
+    while (aux != NULL) {
+        if (aux->left == NULL)
+            printf("%d) left: %s\n", i, "NULL");
+        else 
+            printf("%d) left: %s\n", i, "NOT NULL");
+        aux = aux->left;
+    }
+
 
     return tree;
 }
@@ -272,7 +310,7 @@ struct ASTNode* binexpr(Lexer* lexer, int prev_precedence) {
     left = parse_prefix(lexer);
     
     tokenType = lexer->curr_token.tokenType;
-    if (tokenType == TOKEN_SEMICOLON || tokenType == TOKEN_RPAREN || tokenType == TOKEN_RBRACKET) {
+    if (tokenType == TOKEN_SEMICOLON || tokenType == TOKEN_RPAREN || tokenType == TOKEN_RBRACKET || tokenType == TOKEN_COMMA) {
         left->isRvalue = 1;
         return left;
     }

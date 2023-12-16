@@ -416,12 +416,38 @@ void assembly_return(int r, int id) {
     assembly_jump(SymbolTable[id].endlabel);
 }
 
-int assembly_function_call(int r, int id) {
+void cgcopyarg(int r, int argposn) {
+    if (argposn > 6) {
+        fprintf(OutFile, "\tpush \t%s\n", reglist[r]);
+    }
+    else {
+        fprintf(OutFile, "\tmov  \t%s, %s\n", reglist[FIRSTPARAMREG - argposn + 1], reglist[r]);
+    }
+}
+
+int genfuncall(struct ASTNode* n) {
+    struct ASTNode* gluetree = n->left;
+    int reg;
+    int numargs = 0;
+
+    while (gluetree) {
+        reg = assembly_ast_node(gluetree->right, -1, gluetree->operation);
+        cgcopyarg(reg, gluetree->value);
+        if (numargs == 0) numargs = gluetree->value;
+        freeall_registers();
+        gluetree = gluetree->left;
+    }
+
+    return assembly_function_call(n->value, numargs);
+}
+
+int assembly_function_call(int id, int numargs) {
     int outr = alloc_register();
-    fprintf(OutFile, "\tmov  \trdi, %s\n", reglist[r]);
     fprintf(OutFile, "\tcall \t%s\n", SymbolTable[id].name);
+    if (numargs > 6) {
+        fprintf(OutFile, "\tadd  \trsp, %d\n", 8 * (numargs - 6));
+    }
     fprintf(OutFile, "\tmov  \t%s, rax\n", reglist[outr]);
-    free_register(r);
     return outr;
 }
 
@@ -565,6 +591,47 @@ int assembly_boolean(int r, int op, int label) {
     return (r);
 }
 
+char* pepe(int op)
+{
+    switch (op) {
+
+    case NODE_ASSIGN: return "A_ASSIGN";
+    case NODE_LOGOR: return "A_LOGOR";
+    case NODE_LOGAND: return "A_LOGAND";
+    case NODE_OR: return "A_OR";
+    case NODE_XOR: return "A_XOR";
+    case NODE_AND: return "A_AND";
+    case NODE_LSHIFT: return "A_LSHIFT";
+    case NODE_RSHIFT: return "A_RSHIFT";
+    case NODE_ADD: return "A_ADD";
+    case NODE_SUBTRACT: return "A_SUBTRACT";
+    case NODE_MULTIPLY: return "A_MULTIPLY";
+    case NODE_DIVIDE: return "A_DIVIDE";
+    case NODE_INTLIT: return "A_INTLIT";
+    case NODE_STRINGLIT: return "A_STRLIT";
+    case NODE_IDENTIFIER: return "A_IDENT";
+    case NODE_GLUE: return "A_GLUE";
+    case NODE_IF: return "A_IF";
+    case NODE_WHILE: return "A_WHILE";
+    case NODE_FUNCTION: return "A_FUNCTION";
+    case NODE_WIDEN: return "A_WIDEN";
+    case NODE_RETURN: return "A_RETURN";
+    case NODE_FUNCCALL: return "A_FUNCCALL";
+    case NODE_DEREFERENCE: return "A_DEREF";
+    case NODE_ADDRESS: return "A_ADDR";
+    case NODE_SCALE: return "A_SCALE";
+    case NODE_PREINC: return "A_PREINC";
+    case NODE_PREDEC: return "A_PREDEC";
+    case NODE_POSTINC: return "A_POSTINC";
+    case NODE_POSTDEC: return "A_POSTDEC";
+    case NODE_NEGATE: return "A_NEGATE";
+    case NODE_INVERT: return "A_INVERT";
+    case NODE_LOGNOT: return "A_LOGNOT";
+    case NODE_TOBOOL: return "A_TOBOOL";
+    }
+}
+
+
 //genAST
 int assembly_ast_node(struct ASTNode* node, int label, OperationType parent_type) {
 	
@@ -582,6 +649,7 @@ int assembly_ast_node(struct ASTNode* node, int label, OperationType parent_type
         assembly_ast_node(node->left, -1, node->operation);
         assembly_funcpostamble(node->value);
         return -1;
+    case NODE_FUNCCALL: return genfuncall(node);
     }
 
     int leftRegister = -1, rightRegister = -1;
@@ -626,20 +694,20 @@ int assembly_ast_node(struct ASTNode* node, int label, OperationType parent_type
     case NODE_STRINGLIT: return assembly_load_global_string(node->value);
     case NODE_IDENTIFIER: 
         if (node->isRvalue || parent_type == NODE_DEREFERENCE) {
-            if (SymbolTable[node->value].class == LOCAL)
-                return assembly_load_local(node->value, node->operation);
-            else 
+            if (SymbolTable[node->value].class == GLOBAL)
                 return assembly_load_global(node->value, node->operation);
+            else 
+                return assembly_load_local(node->value, node->operation);
         }
         return -1;
     case NODE_ASSIGN: 
         switch (node->right->operation)
         {
         case NODE_IDENTIFIER: 
-            if (SymbolTable[node->right->value].class == LOCAL)
-                return assembly_store_local(leftRegister, node->right->value);
-            else
+            if (SymbolTable[node->right->value].class == GLOBAL)
                 return assembly_store_global(leftRegister, node->right->value);
+            else
+                return assembly_store_local(leftRegister, node->right->value);
 
         case NODE_DEREFERENCE:  return assembly_store_dereference(leftRegister, rightRegister, node->right->type);
         default:
@@ -649,7 +717,6 @@ int assembly_ast_node(struct ASTNode* node, int label, OperationType parent_type
         return rightRegister;
     case NODE_WIDEN: return assembly_widen(leftRegister, node->left->type, node->type);
     case NODE_RETURN: assembly_return(leftRegister, Functionid); return -1;
-    case NODE_FUNCCALL: return assembly_function_call(leftRegister, node->value);
     case NODE_ADDRESS: return assembly_address(node->value);
     case NODE_DEREFERENCE: 
         if (node->isRvalue)

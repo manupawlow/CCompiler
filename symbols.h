@@ -9,5 +9,6 @@ int findSymbol(char* s);
 int newGlobal();
 int addGlobal(char* name, PrimitiveType type, StructuralType stype, int endlabel, int size);
 int addLocal(char* name, PrimitiveType type, StructuralType stype, int endlabel, int size);
+void freeloclsyms(void);
 
 #endif // SYMBOLS_H_

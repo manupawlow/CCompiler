@@ -14,6 +14,10 @@ void updatesym(int slot, char* name, int type, int stype, int class, int endlabe
     SymbolTable[slot].posn = posn;
 }
 
+void freeloclsyms(void) {
+    Locls = NSYMBOLS - 1;
+}
+
 int findGlobal(char* s) {
     for (int i = 0; i < Globs; i++) {
         if (SymbolTable[i].class != PARAM && *s == *SymbolTable[i].name && !strcmp(s, SymbolTable[i].name))

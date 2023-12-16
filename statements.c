@@ -17,6 +17,7 @@ void global_declarations(Lexer* lexer) {
                 fprintf(stdout, "\n\n");
             }
             assembly_ast_node(tree, -1, 0);
+            freeloclsyms();
         } else {
             variable_declaration(lexer, type, 0, 0);
             match(TOKEN_SEMICOLON, lexer);
@@ -103,7 +104,7 @@ struct ASTNode* function_declaration(Lexer* lexer, PrimitiveType type) {
     int paramCount;
 
     endlabel = label_id();
-    nameslot = addGlobal(Text, type, STRU_FUNCTION, endlabel, 1);
+    nameslot = addGlobal(Text, type, STRU_FUNCTION, endlabel, 0);
     Functionid = nameslot;
 
     match(TOKEN_LPAREN, lexer);
@@ -123,7 +124,7 @@ struct ASTNode* function_declaration(Lexer* lexer, PrimitiveType type) {
         }
     }
 
-    return ast_new_unary(NODE_FUNCTION, PRIM_VOID, tree, nameslot);
+    return ast_new_unary(NODE_FUNCTION, type, tree, nameslot);
 }
 
 //statements
